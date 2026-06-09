@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Mundial 2026: selecciones, jugadores, estadios, calendario, resultados en vivo y simulador del torneo. Proyecto de Carlos Solano." />
+  <title>Mundial 2026 · Guía y Simulador</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="header__inner">
+      <a href="#" class="logo" data-section="inicio">
+        <span class="logo__icon">🏆</span>
+        <span class="logo__text">Mundial <strong>2026</strong></span>
+      </a>
+      <nav class="nav" id="nav">
+        <button class="nav__btn is-active" data-section="inicio">Inicio</button>
+        <button class="nav__btn" data-section="grupos">Grupos</button>
+        <button class="nav__btn" data-section="estadios">Estadios</button>
+        <button class="nav__btn" data-section="calendario">Calendario</button>
+        <button class="nav__btn" data-section="simulador">🎮 Simulador</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- INICIO -->
+    <section class="view is-active" id="inicio">
+      <div class="hero">
+        <h1 class="hero__title">Copa Mundial de la FIFA <span>2026</span></h1>
+        <p class="hero__sub">Estados Unidos · México · Canadá — 48 selecciones, 12 grupos, 104 partidos.</p>
+        <div class="countdown" id="countdown" aria-label="Cuenta regresiva"></div>
+      </div>
+    </section>
+
+    <!-- GRUPOS -->
+    <section class="view" id="grupos">
+      <h2 class="view__title">Grupos</h2>
+      <div class="status" id="gruposStatus" hidden><div class="spinner"></div><p>Cargando...</p></div>
+      <div class="groups-grid" id="gruposGrid"></div>
+    </section>
+
+    <!-- ESTADIOS -->
+    <section class="view" id="estadios">
+      <h2 class="view__title">Estadios</h2>
+      <p class="placeholder">🏟️ Próximamente: sedes y estadios del torneo.</p>
+    </section>
+
+    <!-- CALENDARIO -->
+    <section class="view" id="calendario">
+      <h2 class="view__title">Calendario y resultados</h2>
+      <p class="placeholder">📅 Próximamente: partidos, horarios y resultados en vivo.</p>
+    </section>
+
+    <!-- SIMULADOR -->
+    <section class="view" id="simulador">
+      <h2 class="view__title">🎮 Simulador del Mundial</h2>
+      <p class="placeholder">Próximamente: predice los resultados hasta la final.</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Hecho por <strong>Carlos Solano</strong> · Datos de API-Football</p>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

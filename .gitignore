@@ -1,0 +1,7 @@
+# Secretos locales — NUNCA subir
+.env.local
+.env
+
+# Dependencias / artefactos
+node_modules/
+.vercel/

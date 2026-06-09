@@ -2,9 +2,9 @@
    Mundial 2026 — Lógica base
    ===================================================================== */
 
-// Liga 1 = Copa Mundial de la FIFA en API-Football.
-const LEAGUE = 1;
-const SEASON = 2026;
+// Liga 4429 = FIFA World Cup en TheSportsDB.
+const WC_LEAGUE = 4429;
+const SEASON = "2026";
 const KICKOFF = new Date("2026-06-11T18:00:00-05:00"); // inauguración (aprox.)
 
 // ---- Navegación entre vistas ----
@@ -69,42 +69,22 @@ let gruposCargados = false;
 const $gruposGrid = document.getElementById("gruposGrid");
 const $gruposStatus = document.getElementById("gruposStatus");
 
-async function loadGroups() {
-  $gruposStatus.hidden = false;
-  $gruposGrid.innerHTML = "";
-  try {
-    const data = await api("standings", { league: LEAGUE, season: SEASON });
-    const standings = data.response?.[0]?.league?.standings || [];
-    $gruposStatus.hidden = true;
-
-    if (!standings.length) {
-      $gruposGrid.innerHTML = `<p class="placeholder">Aún no hay tabla de grupos disponible para la temporada ${SEASON}. Aparecerá cuando la API la publique.</p>`;
-      return;
-    }
-
-    gruposCargados = true;
-    $gruposGrid.innerHTML = standings
-      .map((grupo) => {
-        const nombre = grupo[0]?.group || "Grupo";
-        const filas = grupo
-          .map(
-            (t) => `
-            <div class="group-row">
-              <span class="group-row__rank">${t.rank}</span>
-              <img src="${t.team.logo}" alt="${t.team.name}" loading="lazy" />
-              <span>${t.team.name}</span>
-              <span class="group-row__pts">${t.points}</span>
-            </div>`
-          )
-          .join("");
-        return `<div class="group-card">
-          <div class="group-card__head">${nombre}</div>
-          ${filas}
-        </div>`;
-      })
-      .join("");
-  } catch (err) {
-    $gruposStatus.hidden = true;
-    $gruposGrid.innerHTML = `<p class="placeholder">${err.message}</p>`;
-  }
+function loadGroups() {
+  gruposCargados = true;
+  $gruposStatus.hidden = true;
+  $gruposGrid.innerHTML = GROUPS.map(
+    (g) => `
+    <div class="group-card">
+      <div class="group-card__head">Grupo ${g.letter}</div>
+      ${g.teams
+        .map(
+          (t) => `
+        <div class="group-row">
+          <span class="group-row__flag">${t.flag}</span>
+          <span class="group-row__name">${t.name}</span>
+        </div>`
+        )
+        .join("")}
+    </div>`
+  ).join("");
 }

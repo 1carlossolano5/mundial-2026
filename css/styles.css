@@ -130,18 +130,16 @@ body {
   border-bottom: 1px solid var(--line);
 }
 .group-row {
-  display: grid;
-  grid-template-columns: 22px 28px 1fr 36px;
+  display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
+  gap: 12px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--line);
-  font-size: 0.92rem;
+  font-size: 0.95rem;
 }
 .group-row:last-child { border-bottom: none; }
-.group-row__rank { color: var(--text-dim); font-weight: 700; }
-.group-row img { width: 26px; height: 26px; object-fit: contain; }
-.group-row__pts { text-align: right; font-weight: 700; color: var(--accent); }
+.group-row__flag { font-size: 1.5rem; line-height: 1; }
+.group-row__name { font-weight: 600; }
 
 /* ===== Estados ===== */
 .status { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 50px 20px; color: var(--text-dim); }

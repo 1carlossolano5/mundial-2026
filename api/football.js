@@ -1,55 +1,46 @@
 /* =====================================================================
-   Vercel Serverless Function — proxy hacia API-Football (api-sports.io)
+   Vercel Serverless Function — proxy hacia TheSportsDB
    ---------------------------------------------------------------------
-   El frontend NUNCA ve la API key. Esta función vive en el servidor,
-   lee la clave de una variable de entorno (APIFOOTBALL_KEY) y reenvía
-   la petición a API-Football agregando la cabecera de autenticación.
+   TheSportsDB tiene datos del Mundial 2026 (liga 4429): partidos, estadios,
+   escudos, resultados y jugadores con foto. La clave gratuita es pública
+   ("3"); igual usamos este proxy para cachear y evitar problemas de CORS.
 
    El frontend llama así:
-     /api/football?path=standings&league=1&season=2026
+     /api/football?path=eventsseason.php&id=4429&s=2026
    ===================================================================== */
 
-const API_BASE = "https://v3.football.api-sports.io/";
+const KEY = process.env.SPORTSDB_KEY || "3"; // "3" = clave pública de prueba
+const BASE = `https://www.thesportsdb.com/api/v1/json/${KEY}/`;
 
-// Solo permitimos estos endpoints (evita usar el proxy para otra cosa).
+// Solo permitimos estos endpoints de TheSportsDB.
 const ALLOWED = [
-  "teams",
-  "players",
-  "players/squads",
-  "fixtures",
-  "standings",
-  "venues",
-  "leagues",
-  "coachs",
+  "eventsseason.php",   // partidos de una temporada
+  "eventsround.php",    // partidos por jornada
+  "eventsnextleague.php",
+  "eventspastleague.php",
+  "lookuptable.php",    // tabla de posiciones
+  "lookup_all_players.php", // jugadores de un equipo (con foto)
+  "lookupteam.php",     // info de un equipo
+  "lookupplayer.php",   // info de un jugador
+  "lookupevent.php",    // info de un partido
 ];
 
 export default async function handler(req, res) {
-  const key = process.env.APIFOOTBALL_KEY;
-  if (!key) {
-    return res.status(500).json({
-      error:
-        "Falta APIFOOTBALL_KEY en el servidor. Configúrala en Vercel (Settings → Environment Variables) o en .env.local para pruebas locales.",
-    });
-  }
-
   const { path = "", ...rest } = req.query;
   if (!ALLOWED.includes(path)) {
     return res.status(400).json({ error: "Ruta no permitida." });
   }
 
-  const url = new URL(API_BASE + path);
+  const url = new URL(BASE + path);
   for (const [k, v] of Object.entries(rest)) url.searchParams.set(k, v);
 
   try {
-    const r = await fetch(url.toString(), {
-      headers: { "x-apisports-key": key },
-    });
+    const r = await fetch(url.toString());
     const data = await r.json();
-    // Caché en el borde de Vercel: muchos usuarios comparten la misma
-    // respuesta, así gastamos muy pocas peticiones del límite diario.
-    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
-    return res.status(r.status).json(data);
+    // Caché en el borde de Vercel: comparte respuestas entre usuarios.
+    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=900");
+    return res.status(200).json(data);
   } catch (err) {
-    return res.status(502).json({ error: "No se pudo conectar con API-Football." });
+    return res.status(502).json({ error: "No se pudo conectar con TheSportsDB." });
   }
 }

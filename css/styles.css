@@ -138,7 +138,7 @@ body {
   font-size: 0.95rem;
 }
 .group-row:last-child { border-bottom: none; }
-.group-row__flag { font-size: 1.5rem; line-height: 1; }
+.group-row__crest { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; }
 .group-row__name { font-weight: 600; }
 
 /* ===== Estados ===== */

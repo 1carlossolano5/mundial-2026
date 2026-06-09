@@ -80,7 +80,7 @@ function loadGroups() {
         .map(
           (t) => `
         <div class="group-row">
-          <span class="group-row__flag">${t.flag}</span>
+          <img class="group-row__crest" src="${t.img}" alt="${t.name}" loading="lazy" />
           <span class="group-row__name">${t.name}</span>
         </div>`
         )

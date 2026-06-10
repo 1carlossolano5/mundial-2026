@@ -267,7 +267,7 @@ function renderGroupsStep() {
       }).join("")}
     </div>
     <div class="sim-actions">
-      <button class="sim-next" id="simNext" ${done ? "" : "disabled"}>Continuar a terceros →</button>
+      <button class="btn sim-next" id="simNext" ${done ? "" : "disabled"}><span>Continuar a terceros</span><span class="btn__icon" aria-hidden="true">→</span></button>
     </div>`;
 
   $simRoot.querySelectorAll(".sim-team").forEach((btn) =>
@@ -330,7 +330,7 @@ function renderScoresStep() {
       }).join("")}
     </div>
     <div class="sim-actions">
-      <button class="sim-next" id="simNext" ${done ? "" : "disabled"}>Ir a las eliminatorias →</button>
+      <button class="btn sim-next" id="simNext" ${done ? "" : "disabled"}><span>Ir a las eliminatorias</span><span class="btn__icon" aria-hidden="true">→</span></button>
     </div>`;
 
   // Actualizar SOLO la tabla afectada al escribir (no re-renderizar inputs -> no se pierde el foco).
@@ -372,8 +372,8 @@ function renderThirds() {
       }).join("")}
     </div>
     <div class="sim-actions">
-      <button class="sim-back" id="simBack">← Volver</button>
-      <button class="sim-next" id="simNext" ${sim.thirds.length === 8 ? "" : "disabled"}>Armar eliminatorias →</button>
+      <button class="btn btn--ghost sim-back" id="simBack"><span class="btn__icon" aria-hidden="true">←</span><span>Volver</span></button>
+      <button class="btn sim-next" id="simNext" ${sim.thirds.length === 8 ? "" : "disabled"}><span>Armar eliminatorias</span><span class="btn__icon" aria-hidden="true">→</span></button>
     </div>`;
 
   $simRoot.querySelectorAll(".third-card").forEach((btn) =>
@@ -422,7 +422,7 @@ function renderBracket() {
         .join("")}
     </div>
     <div class="sim-actions">
-      <button class="sim-back" id="simBack">← Volver</button>
+      <button class="btn btn--ghost sim-back" id="simBack"><span class="btn__icon" aria-hidden="true">←</span><span>Volver</span></button>
     </div>`;
 
   $simRoot.querySelectorAll(".bracket-team[data-name]").forEach((btn) =>

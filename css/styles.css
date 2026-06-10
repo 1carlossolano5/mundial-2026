@@ -482,6 +482,61 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   *, *::before, *::after { animation: none !important; }
 }
 
+/* ===== Sistema de botones premium (emil + high-end) ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-head);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  font-size: 0.95rem;
+  padding: 11px 13px 11px 24px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  color: #04130c;
+  background: var(--accent);
+  transition: transform 0.14s var(--ease-out), background 0.2s var(--ease-out),
+    box-shadow 0.25s var(--ease-out), color 0.2s var(--ease-out), border-color 0.2s var(--ease-out);
+}
+.btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.16);
+  font-size: 1rem;
+  transition: transform 0.2s var(--ease-out);
+}
+.btn:active { transform: scale(0.97); }
+/* variante secundaria (fantasma) */
+.btn--ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+  padding: 11px 22px;
+}
+.btn--ghost .btn__icon { background: var(--bg-card); }
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover { box-shadow: 0 12px 32px rgba(0, 210, 122, 0.32); }
+  .btn:hover .btn__icon { transform: translate(3px, -2px); }
+  .btn--ghost:hover { border-color: var(--accent); box-shadow: none; }
+}
+
+/* Números tabulares en datos (alineados, profesional) */
+.cd-box b, .stand, .score, .match-row { font-variant-numeric: tabular-nums; }
+
+/* Tipografía (impeccable): líneas equilibradas y ancho de lectura cómodo */
+.view__title, .hero__title { text-wrap: balance; }
+.sim-hint { max-width: 72ch; }
+.hero__sub { max-width: 52ch; margin-left: auto; margin-right: auto; text-wrap: balance; }
+.hero__cta { margin-top: 30px; }
+
 /* ===== Pulido (skills: emil-design-eng + high-end-visual-design) ===== */
 /* Transiciones con curvas fuertes en lo interactivo */
 .sim-next, .sim-back, .sim-reset, .load-more__btn, .sim-team,

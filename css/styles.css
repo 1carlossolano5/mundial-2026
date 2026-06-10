@@ -254,6 +254,10 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
 .group-card:nth-child(9){animation-delay:.27s} .group-card:nth-child(10){animation-delay:.30s}
 .group-card:nth-child(11){animation-delay:.33s} .group-card:nth-child(12){animation-delay:.36s}
 .group-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   background: linear-gradient(100deg, rgba(0,210,122,.22), rgba(28,182,255,.10));
   padding: 15px 18px;
   font-size: 1.15rem;
@@ -262,6 +266,38 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   letter-spacing: 1px;
   border-bottom: 2px solid var(--accent);
 }
+.group-card__badge {
+  font-family: "Outfit", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--wc-orange);
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+/* Grupo de Colombia resaltado */
+.group-card.is-highlight { border-color: var(--wc-orange); }
+.group-card.is-highlight .group-card__head {
+  background: linear-gradient(100deg, rgba(245, 158, 11, 0.22), rgba(37, 99, 235, 0.12));
+  border-bottom-color: var(--wc-orange);
+}
+.group-row.is-you {
+  background: rgba(245, 158, 11, 0.08);
+  font-weight: 700;
+}
+/* Intro de sección */
+.view__intro {
+  color: var(--text-dim);
+  max-width: 68ch;
+  line-height: 1.6;
+  margin: -14px 0 28px;
+  font-size: 1.02rem;
+}
+.view__intro strong { color: var(--text); }
 .group-row {
   display: flex;
   align-items: center;

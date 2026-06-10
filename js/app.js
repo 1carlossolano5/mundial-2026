@@ -82,19 +82,23 @@ const $gruposStatus = document.getElementById("gruposStatus");
 function loadGroups() {
   gruposCargados = true;
   $gruposStatus.hidden = true;
-  $gruposGrid.innerHTML = GROUPS.map(
-    (g) => `
-    <div class="group-card">
-      <div class="group-card__head">Grupo ${g.letter}</div>
+  $gruposGrid.innerHTML = GROUPS.map((g) => {
+    const tuyo = g.teams.some((t) => t.name === "Colombia");
+    return `
+    <div class="group-card ${tuyo ? "is-highlight" : ""}">
+      <div class="group-card__head">
+        <span>Grupo ${g.letter}</span>
+        ${tuyo ? `<span class="group-card__badge">🇨🇴 Tu selección</span>` : ""}
+      </div>
       ${g.teams
         .map(
           (t) => `
-        <div class="group-row">
+        <div class="group-row ${t.name === "Colombia" ? "is-you" : ""}">
           <img class="group-row__crest" src="${t.img}" alt="${t.name}" loading="lazy" />
           <span class="group-row__name">${t.name}</span>
         </div>`
         )
         .join("")}
-    </div>`
-  ).join("");
+    </div>`;
+  }).join("");
 }

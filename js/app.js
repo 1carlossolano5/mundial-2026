@@ -47,6 +47,16 @@ function renderCountdown() {
 renderCountdown();
 setInterval(renderCountdown, 1000);
 
+// ---- Ticker de banderas (estilo transmisión deportiva) ----
+(function buildTicker() {
+  const track = document.getElementById("tickerTrack");
+  if (!track) return;
+  const all = GROUPS.flatMap((g) => g.teams);
+  const item = (t) => `<span class="ticker__item"><img src="${t.img}" alt="" loading="lazy" />${t.name}</span>`;
+  // Duplicamos la lista para que el desplazamiento sea continuo (loop).
+  track.innerHTML = all.map(item).join("") + all.map(item).join("");
+})();
+
 // ---- Llamadas a la API (vía nuestra función serverless) ----
 async function api(path, params = {}) {
   const url = new URL("/api/football", window.location.origin);

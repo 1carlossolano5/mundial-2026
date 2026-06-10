@@ -30,14 +30,25 @@
 
 body {
   font-family: "Inter", system-ui, sans-serif;
-  background:
-    radial-gradient(800px 500px at 100% 0%, rgba(255,46,116,.07), transparent 60%),
-    radial-gradient(800px 500px at 0% 10%, rgba(28,182,255,.07), transparent 60%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+/* Manchas de color que se mueven suave de fondo (vida en toda la página) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -15%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(360px 360px at 15% 20%, rgba(225, 20, 10, 0.16), transparent 60%),
+    radial-gradient(440px 440px at 85% 12%, rgba(37, 99, 235, 0.16), transparent 60%),
+    radial-gradient(440px 440px at 82% 88%, rgba(22, 163, 74, 0.15), transparent 60%),
+    radial-gradient(360px 360px at 10% 90%, rgba(245, 158, 11, 0.14), transparent 60%);
+  animation: blobMove 16s ease-in-out infinite alternate;
 }
 h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
 .bracket__round, .cd-box b, .champion__team b, .mode-card h3, .sim-step {
@@ -59,6 +70,8 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   display: block;
   height: 4px;
   background: var(--grad);
+  background-size: 200% 100%;
+  animation: barFlow 6s linear infinite;
 }
 .header__inner {
   max-width: 1180px;
@@ -162,6 +175,7 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
     0 0 0 494px var(--wc-orange), 0 0 0 520px var(--wc-red),
     0 0 0 560px var(--wc-green);
   opacity: 0.92;
+  animation: spinSlow 70s linear infinite;
 }
 .hero__content {
   position: relative;
@@ -175,7 +189,7 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   max-width: 580px;
   box-shadow: var(--shadow);
 }
-.hero__badge { font-size: 3.2rem; line-height: 1; margin-bottom: 8px; }
+.hero__badge { font-size: 3.2rem; line-height: 1; margin-bottom: 8px; animation: floatY 3.2s ease-in-out infinite; }
 .hero__title {
   font-family: var(--font-head);
   font-size: clamp(2.1rem, 6.5vw, 3.6rem);
@@ -186,9 +200,11 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
 }
 .hero__title span {
   background: var(--grad);
+  background-size: 250% auto;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: shimmer 5s linear infinite;
 }
 .hero__sub { color: var(--text-dim); margin-top: 16px; font-size: 1.05rem; }
 
@@ -217,9 +233,21 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   border-radius: var(--radius);
   overflow: hidden;
   box-shadow: var(--shadow);
-  transition: transform 0.18s, border-color 0.18s;
+  transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+  animation: cardIn 0.5s both;
 }
-.group-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+.group-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--accent);
+  box-shadow: 0 16px 40px rgba(0, 210, 122, 0.22);
+}
+/* Entrada escalonada */
+.group-card:nth-child(1){animation-delay:.03s} .group-card:nth-child(2){animation-delay:.06s}
+.group-card:nth-child(3){animation-delay:.09s} .group-card:nth-child(4){animation-delay:.12s}
+.group-card:nth-child(5){animation-delay:.15s} .group-card:nth-child(6){animation-delay:.18s}
+.group-card:nth-child(7){animation-delay:.21s} .group-card:nth-child(8){animation-delay:.24s}
+.group-card:nth-child(9){animation-delay:.27s} .group-card:nth-child(10){animation-delay:.30s}
+.group-card:nth-child(11){animation-delay:.33s} .group-card:nth-child(12){animation-delay:.36s}
 .group-card__head {
   background: linear-gradient(100deg, rgba(0,210,122,.22), rgba(28,182,255,.10));
   padding: 15px 18px;
@@ -388,6 +416,58 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
 .champion__team { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; }
 .champion__team img { width: 56px; height: 56px; object-fit: contain; }
 .champion__team b { font-size: 1.8rem; }
+
+/* ===== Animaciones ===== */
+@keyframes blobMove {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(30px, -20px) scale(1.12); }
+}
+@keyframes spinSlow {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes floatY {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+@keyframes shimmer { to { background-position: 250% center; } }
+@keyframes barFlow { to { background-position: 200% center; } }
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes tickerScroll { to { transform: translateX(-50%); } }
+
+/* Entrada también para terceros, modos y llaves */
+.third-card, .mode-card, .bracket-match { animation: cardIn 0.45s both; }
+.mode-card:nth-child(2) { animation-delay: 0.08s; }
+
+/* ===== Ticker de banderas (estilo transmisión) ===== */
+.ticker {
+  overflow: hidden;
+  margin-top: 30px;
+  padding: 12px 0;
+  background: var(--bg-soft);
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+.ticker__track {
+  display: inline-flex;
+  gap: 36px;
+  white-space: nowrap;
+  will-change: transform;
+  animation: tickerScroll 45s linear infinite;
+}
+.ticker:hover .ticker__track { animation-play-state: paused; }
+.ticker__item { display: inline-flex; align-items: center; gap: 9px; color: var(--text-dim); font-weight: 600; font-size: 0.9rem; }
+.ticker__item img { width: 22px; height: 22px; object-fit: contain; }
+
+/* Accesibilidad: si el usuario pide menos movimiento, lo apagamos */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; }
+}
 
 /* ===== Footer ===== */
 .footer {

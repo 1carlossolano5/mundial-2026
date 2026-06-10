@@ -14,8 +14,13 @@
   --blue: #1cb6ff;       /* azul eléctrico */
   --accent: var(--green);
   --accent-2: var(--gold);
+  /* colores oficiales Mundial 2026 */
+  --wc-red: #e1140a;
+  --wc-green: #16a34a;
+  --wc-blue: #2563eb;
+  --wc-orange: #f59e0b;
   /* franja multicolor estilo Mundial 2026 */
-  --grad: linear-gradient(90deg, #00d27a, #1cb6ff, #ff2e74, #ffc524);
+  --grad: linear-gradient(90deg, #e1140a, #16a34a, #2563eb, #f59e0b);
   --radius: 16px;
   --shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
   --font-head: "Oswald", system-ui, sans-serif;
@@ -123,44 +128,61 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   border-image: var(--grad) 1;
 }
 
-/* ===== Hero ===== */
+/* ===== Hero (identidad oficial: rectángulos concéntricos) ===== */
 .hero {
   position: relative;
   overflow: hidden;
-  text-align: center;
-  padding: 80px 24px;
-  background:
-    radial-gradient(700px 400px at 50% -20%, rgba(0,210,122,.22), transparent 70%),
-    linear-gradient(160deg, var(--bg-soft), var(--bg));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 480px;
+  padding: 40px 20px;
+  background: #06101f;
   border: 1px solid var(--line);
   border-radius: 24px;
 }
-/* círculo central de cancha */
-.hero::before {
-  content: "";
+/* "eco" de rectángulos redondeados multicolor, como el logo 2026 */
+.hero__echo {
   position: absolute;
-  width: 360px; height: 360px;
-  border: 2px solid rgba(255,255,255,.05);
-  border-radius: 50%;
   top: 50%; left: 50%;
   transform: translate(-50%, -50%);
+  width: 78px; height: 94px;
+  border-radius: 44px;
+  background: var(--wc-red);
+  box-shadow:
+    0 0 0 26px var(--wc-green), 0 0 0 52px var(--wc-blue),
+    0 0 0 78px var(--wc-orange), 0 0 0 104px var(--wc-red),
+    0 0 0 130px var(--wc-green), 0 0 0 156px var(--wc-blue),
+    0 0 0 182px var(--wc-orange), 0 0 0 208px var(--wc-red),
+    0 0 0 234px var(--wc-green), 0 0 0 260px var(--wc-blue),
+    0 0 0 286px var(--wc-orange), 0 0 0 312px var(--wc-red),
+    0 0 0 338px var(--wc-green), 0 0 0 364px var(--wc-blue),
+    0 0 0 390px var(--wc-orange), 0 0 0 416px var(--wc-red),
+    0 0 0 442px var(--wc-green), 0 0 0 468px var(--wc-blue),
+    0 0 0 494px var(--wc-orange), 0 0 0 520px var(--wc-red),
+    0 0 0 560px var(--wc-green);
+  opacity: 0.92;
 }
-.hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--grad);
-  height: 5px;
-  bottom: 0; top: auto;
-  opacity: 0.9;
+.hero__content {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  background: rgba(6, 13, 26, 0.66);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 22px;
+  padding: 38px 36px;
+  max-width: 580px;
+  box-shadow: var(--shadow);
 }
-.hero > * { position: relative; z-index: 1; }
+.hero__badge { font-size: 3.2rem; line-height: 1; margin-bottom: 8px; }
 .hero__title {
   font-family: var(--font-head);
-  font-size: clamp(2.2rem, 7vw, 4.2rem);
+  font-size: clamp(2.1rem, 6.5vw, 3.6rem);
   font-weight: 700;
   text-transform: uppercase;
   line-height: 1;
+  color: #fff;
 }
 .hero__title span {
   background: var(--grad);
@@ -168,7 +190,7 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   background-clip: text;
   color: transparent;
 }
-.hero__sub { color: var(--text-dim); margin-top: 18px; font-size: 1.12rem; }
+.hero__sub { color: var(--text-dim); margin-top: 16px; font-size: 1.05rem; }
 
 /* Cuenta regresiva */
 .countdown { display: flex; justify-content: center; gap: 14px; margin-top: 36px; flex-wrap: wrap; }

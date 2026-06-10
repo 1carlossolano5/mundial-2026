@@ -23,13 +23,13 @@
   --grad: linear-gradient(90deg, #e1140a, #16a34a, #2563eb, #f59e0b);
   --radius: 16px;
   --shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
-  --font-head: "Oswald", system-ui, sans-serif;
+  --font-head: "Archivo", system-ui, sans-serif;
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 [hidden] { display: none !important; }
 
 body {
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Outfit", system-ui, sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -93,12 +93,7 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   color: var(--text);
   text-decoration: none;
 }
-.logo__text strong {
-  background: var(--grad);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
+.logo__text strong { color: var(--wc-red); }
 .nav { display: flex; gap: 8px; flex-wrap: wrap; }
 .nav__btn {
   background: transparent;
@@ -132,13 +127,21 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
 .view.is-active { display: block; animation: fade 0.25s ease; }
 @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .view__title {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  font-weight: 800;
   text-transform: uppercase;
-  margin-bottom: 28px;
-  padding-left: 16px;
-  border-left: 5px solid transparent;
-  border-image: var(--grad) 1;
+  letter-spacing: -0.02em;
+  margin-bottom: 30px;
+  padding-bottom: 12px;
+  position: relative;
+}
+.view__title::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: 0;
+  width: 58px; height: 5px;
+  border-radius: 3px;
+  background: var(--wc-red);
 }
 
 /* ===== Hero (identidad oficial: rectángulos concéntricos) ===== */
@@ -152,7 +155,14 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   padding: 40px 20px;
   background: #06101f;
   border: 1px solid var(--line);
-  border-radius: 24px;
+  border-radius: 20px;
+}
+/* Vela oscura radial: oscurece el centro para que el texto se lea sobre el patrón */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 70% at 50% 50%, rgba(6, 13, 26, 0.88) 0%, rgba(6, 13, 26, 0.55) 45%, transparent 75%);
 }
 /* "eco" de rectángulos redondeados multicolor, como el logo 2026 */
 .hero__echo {
@@ -181,32 +191,22 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   position: relative;
   z-index: 1;
   text-align: center;
-  background: rgba(6, 13, 26, 0.66);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 22px;
-  padding: 38px 36px;
-  max-width: 580px;
-  box-shadow: var(--shadow);
+  padding: 20px;
+  max-width: 640px;
 }
 .hero__badge { font-size: 3.2rem; line-height: 1; margin-bottom: 8px; animation: floatY 3.2s ease-in-out infinite; }
 .hero__title {
   font-family: var(--font-head);
-  font-size: clamp(2.1rem, 6.5vw, 3.6rem);
-  font-weight: 700;
+  font-size: clamp(2.4rem, 7vw, 4.5rem);
+  font-weight: 900;
   text-transform: uppercase;
-  line-height: 1;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  text-wrap: balance;
   color: #fff;
 }
-.hero__title span {
-  background: var(--grad);
-  background-size: 250% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: shimmer 5s linear infinite;
-}
-.hero__sub { color: var(--text-dim); margin-top: 16px; font-size: 1.05rem; }
+.hero__title span { color: var(--wc-orange); }
+.hero__sub { color: #c7d3ea; margin-top: 18px; font-size: 1.1rem; }
 
 /* Cuenta regresiva */
 .countdown { display: flex; justify-content: center; gap: 14px; margin-top: 36px; flex-wrap: wrap; }
@@ -232,8 +232,7 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
-  box-shadow: var(--shadow);
-  transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s, box-shadow 0.2s;
   animation: cardIn 0.5s both;
 }
 .group-card:hover {

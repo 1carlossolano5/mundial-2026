@@ -154,6 +154,93 @@ body {
   text-align: center;
 }
 
+/* ===== Simulador ===== */
+.sim-steps { display: inline-flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.sim-step {
+  background: var(--bg-card); border: 1px solid var(--line); color: var(--text-dim);
+  padding: 7px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 600;
+}
+.sim-step.is-active { background: var(--accent); border-color: var(--accent); color: #04130c; }
+.sim-reset {
+  float: right; background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+  padding: 7px 14px; border-radius: 999px; cursor: pointer; font-family: inherit; font-size: 0.82rem;
+}
+.sim-reset:hover { border-color: var(--accent-2); color: var(--text); }
+.sim-hint { color: var(--text-dim); margin: 14px 0 22px; line-height: 1.5; clear: both; }
+.sim-hint b { color: var(--text); }
+
+.sim-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 26px; flex-wrap: wrap; }
+.sim-next, .sim-back {
+  border: 1px solid var(--line); border-radius: 999px; padding: 12px 24px; cursor: pointer;
+  font-family: inherit; font-size: 0.95rem; font-weight: 700;
+}
+.sim-next { background: var(--accent); border-color: var(--accent); color: #04130c; }
+.sim-next:disabled { opacity: 0.45; cursor: default; }
+.sim-back { background: transparent; color: var(--text); }
+.sim-back:hover { border-color: var(--text-dim); }
+
+/* Paso 1: equipos clicables */
+.group-card.is-done { border-color: var(--accent); }
+.sim-team {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: transparent; border: none; border-bottom: 1px solid var(--line);
+  padding: 9px 14px; cursor: pointer; color: var(--text); font-family: inherit; font-size: 0.92rem;
+  text-align: left;
+}
+.sim-team:last-child { border-bottom: none; }
+.sim-team:hover { background: var(--bg-soft); }
+.sim-team img { width: 26px; height: 26px; object-fit: contain; }
+.sim-team__name { flex: 1; }
+.sim-team__pos {
+  width: 22px; height: 22px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-size: 0.78rem; font-weight: 800; color: var(--text-dim);
+  border: 1px solid var(--line);
+}
+.sim-team.q1 { background: rgba(22,199,132,.12); }
+.sim-team.q1 .sim-team__pos { background: var(--accent); color: #04130c; border-color: var(--accent); }
+.sim-team.q3 .sim-team__pos { background: var(--accent-2); color: #1a1200; border-color: var(--accent-2); }
+.sim-team.q4 { opacity: 0.6; }
+
+/* Paso 2: terceros */
+.thirds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.third-card {
+  position: relative; background: var(--bg-card); border: 2px solid var(--line); border-radius: 12px;
+  padding: 16px 12px; cursor: pointer; color: var(--text); font-family: inherit;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; transition: all 0.15s;
+}
+.third-card:hover { border-color: var(--text-dim); }
+.third-card.is-sel { border-color: var(--accent); background: rgba(22,199,132,.12); }
+.third-card img { width: 44px; height: 44px; object-fit: contain; }
+.third-card__name { font-weight: 700; font-size: 0.9rem; text-align: center; }
+.third-card__group { font-size: 0.75rem; color: var(--text-dim); }
+.third-card__check { position: absolute; top: 8px; right: 10px; color: var(--accent); font-weight: 900; }
+
+/* Paso 3: bracket */
+.bracket { display: flex; gap: 18px; overflow-x: auto; padding-bottom: 14px; align-items: stretch; }
+.bracket__col { display: flex; flex-direction: column; justify-content: space-around; gap: 10px; min-width: 180px; }
+.bracket__round { text-align: center; font-weight: 800; color: var(--text-dim); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+.bracket-match { background: var(--bg-card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.bracket-team {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: transparent; border: none; border-bottom: 1px solid var(--line);
+  padding: 8px 10px; cursor: pointer; color: var(--text); font-family: inherit; font-size: 0.82rem; text-align: left;
+}
+.bracket-team:last-child { border-bottom: none; }
+.bracket-team img { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
+.bracket-team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bracket-team:hover { background: var(--bg-soft); }
+.bracket-team.is-winner { background: rgba(22,199,132,.18); font-weight: 700; }
+.bracket-team.is-empty { color: var(--text-dim); cursor: default; font-style: italic; }
+
+.champion {
+  text-align: center; background: radial-gradient(600px 200px at 50% 0%, rgba(255,203,5,.18), transparent 70%);
+  border: 1px solid var(--accent-2); border-radius: 16px; padding: 22px; margin-bottom: 24px;
+}
+.champion > span { color: var(--accent-2); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; font-size: 0.85rem; }
+.champion__team { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; }
+.champion__team img { width: 56px; height: 56px; object-fit: contain; }
+.champion__team b { font-size: 1.8rem; }
+
 /* ===== Footer ===== */
 .footer {
   border-top: 1px solid var(--line);

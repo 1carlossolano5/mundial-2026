@@ -20,6 +20,8 @@ function showSection(name) {
 
   // Carga perezosa de cada sección la primera vez.
   if (name === "grupos" && !gruposCargados) loadGroups();
+  if (name === "estadios" && !estadiosCargados) loadStadiums();
+  if (name === "calendario" && !calendarioCargado) loadCalendar();
 }
 
 $navBtns.forEach((btn) => {
@@ -101,4 +103,89 @@ function loadGroups() {
         .join("")}
     </div>`;
   }).join("");
+}
+
+// =====================================================================
+// ESTADIOS
+// =====================================================================
+let estadiosCargados = false;
+const $estadiosGrid = document.getElementById("estadiosGrid");
+
+function loadStadiums() {
+  estadiosCargados = true;
+  $estadiosGrid.innerHTML = STADIUMS.map(
+    (s) => `
+    <article class="stadium-card">
+      <div class="stadium-card__flag">${s.flag}</div>
+      <h3 class="stadium-card__name">${s.name}</h3>
+      <p class="stadium-card__city">${s.city} · ${s.country}</p>
+      <p class="stadium-card__cap">≈ ${s.cap} asientos</p>
+    </article>`
+  ).join("");
+}
+
+// =====================================================================
+// CALENDARIO (partidos + resultados en vivo, desde TheSportsDB)
+// =====================================================================
+let calendarioCargado = false;
+const $calList = document.getElementById("calList");
+const $calStatus = document.getElementById("calStatus");
+const MESES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+function fmtFecha(s) {
+  const [y, m, d] = (s || "").split("-").map(Number);
+  return m ? `${d} de ${MESES[m - 1]}` : s;
+}
+
+function matchCard(e) {
+  const jugado = e.intHomeScore != null && e.intAwayScore != null;
+  const centro = jugado
+    ? `<span class="mc__score">${e.intHomeScore} - ${e.intAwayScore}</span>`
+    : `<span class="mc__time">${(e.strTime || "").slice(0, 5) || "vs"}</span>`;
+  return `
+    <div class="match-card ${jugado ? "is-played" : ""}">
+      <div class="mc__team mc__home">
+        <span>${e.strHomeTeam || ""}</span>
+        <img src="${e.strHomeTeamBadge || ""}" alt="" loading="lazy" />
+      </div>
+      <div class="mc__center">${centro}${jugado ? `<span class="mc__ft">Final</span>` : ""}</div>
+      <div class="mc__team mc__away">
+        <img src="${e.strAwayTeamBadge || ""}" alt="" loading="lazy" />
+        <span>${e.strAwayTeam || ""}</span>
+      </div>
+      ${e.strVenue ? `<div class="mc__venue">📍 ${e.strVenue}</div>` : ""}
+    </div>`;
+}
+
+async function loadCalendar() {
+  calendarioCargado = true;
+  $calStatus.hidden = false;
+  $calList.innerHTML = "";
+  try {
+    const data = await api("eventsseason.php", { id: WC_LEAGUE, s: SEASON });
+    const events = (data.events || [])
+      .slice()
+      .sort((a, b) => (a.strTimestamp || "").localeCompare(b.strTimestamp || ""));
+    $calStatus.hidden = true;
+    if (!events.length) {
+      $calList.innerHTML = `<p class="placeholder">Aún no hay partidos publicados por la API. Aparecerán a medida que se acerque y juegue el torneo.</p>`;
+      return;
+    }
+    let html = "";
+    let fechaActual = "";
+    for (const e of events) {
+      if (e.dateEvent !== fechaActual) {
+        fechaActual = e.dateEvent;
+        html += `<h3 class="cal-date">${fmtFecha(e.dateEvent)}</h3>`;
+      }
+      html += matchCard(e);
+    }
+    $calList.innerHTML = html;
+  } catch (err) {
+    $calStatus.hidden = true;
+    $calList.innerHTML = `<p class="placeholder">${err.message}</p>`;
+  }
 }

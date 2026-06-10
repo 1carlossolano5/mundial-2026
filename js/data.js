@@ -80,3 +80,23 @@ const GROUPS = [
     { name: "Panamá", flag: "🇵🇦", img: "img/panama.png" },
   ]},
 ];
+
+// Las 16 sedes del Mundial 2026 (capacidades aproximadas).
+const STADIUMS = [
+  { name: "Estadio Azteca", city: "Ciudad de México", country: "México", flag: "🇲🇽", cap: "83.000" },
+  { name: "Estadio Akron", city: "Guadalajara", country: "México", flag: "🇲🇽", cap: "48.000" },
+  { name: "Estadio BBVA", city: "Monterrey", country: "México", flag: "🇲🇽", cap: "53.500" },
+  { name: "BC Place", city: "Vancouver", country: "Canadá", flag: "🇨🇦", cap: "54.500" },
+  { name: "BMO Field", city: "Toronto", country: "Canadá", flag: "🇨🇦", cap: "45.000" },
+  { name: "MetLife Stadium", city: "Nueva York / Nueva Jersey", country: "EE.UU.", flag: "🇺🇸", cap: "82.500" },
+  { name: "SoFi Stadium", city: "Los Ángeles", country: "EE.UU.", flag: "🇺🇸", cap: "70.000" },
+  { name: "AT&T Stadium", city: "Dallas", country: "EE.UU.", flag: "🇺🇸", cap: "80.000" },
+  { name: "NRG Stadium", city: "Houston", country: "EE.UU.", flag: "🇺🇸", cap: "72.000" },
+  { name: "Mercedes-Benz Stadium", city: "Atlanta", country: "EE.UU.", flag: "🇺🇸", cap: "71.000" },
+  { name: "Arrowhead Stadium", city: "Kansas City", country: "EE.UU.", flag: "🇺🇸", cap: "76.000" },
+  { name: "Lincoln Financial Field", city: "Filadelfia", country: "EE.UU.", flag: "🇺🇸", cap: "69.000" },
+  { name: "Levi's Stadium", city: "San Francisco Bay", country: "EE.UU.", flag: "🇺🇸", cap: "68.500" },
+  { name: "Lumen Field", city: "Seattle", country: "EE.UU.", flag: "🇺🇸", cap: "68.700" },
+  { name: "Gillette Stadium", city: "Boston", country: "EE.UU.", flag: "🇺🇸", cap: "65.900" },
+  { name: "Hard Rock Stadium", city: "Miami", country: "EE.UU.", flag: "🇺🇸", cap: "65.300" },
+];

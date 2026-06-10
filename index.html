@@ -57,13 +57,16 @@
     <!-- ESTADIOS -->
     <section class="view" id="estadios">
       <h2 class="view__title">Estadios</h2>
-      <p class="placeholder">🏟️ Próximamente: sedes y estadios del torneo.</p>
+      <p class="view__intro">16 sedes en 3 países: <strong>11 en Estados Unidos</strong> 🇺🇸, <strong>3 en México</strong> 🇲🇽 y <strong>2 en Canadá</strong> 🇨🇦.</p>
+      <div class="stadiums-grid" id="estadiosGrid"></div>
     </section>
 
     <!-- CALENDARIO -->
     <section class="view" id="calendario">
       <h2 class="view__title">Calendario y resultados</h2>
-      <p class="placeholder">📅 Próximamente: partidos, horarios y resultados en vivo.</p>
+      <p class="view__intro">Partidos con horario y sede. Los <strong>resultados se actualizan</strong> a medida que se juegan.</p>
+      <div class="status" id="calStatus" hidden><div class="spinner"></div><p>Cargando partidos...</p></div>
+      <div class="calendar" id="calList"></div>
     </section>
 
     <!-- SIMULADOR -->

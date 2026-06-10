@@ -24,6 +24,9 @@
   --radius: 16px;
   --shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
   --font-head: "Archivo", system-ui, sans-serif;
+  /* curvas de easing fuertes (tipo Apple/Linear) — no las débiles por defecto */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -105,9 +108,12 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   font-family: inherit;
   font-size: 0.9rem;
   font-weight: 600;
-  transition: all 0.18s;
+  transition: background 0.2s var(--ease-out), color 0.2s var(--ease-out), border-color 0.2s var(--ease-out), transform 0.12s var(--ease-out);
 }
-.nav__btn:hover { color: var(--text); border-color: var(--text-dim); }
+.nav__btn:active { transform: scale(0.96); }
+@media (hover: hover) and (pointer: fine) {
+  .nav__btn:hover { color: var(--text); border-color: var(--text-dim); }
+}
 .nav__btn.is-active {
   background: var(--accent);
   border-color: var(--accent);
@@ -299,9 +305,13 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
 .mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
 .mode-card {
   background: var(--bg-card); border: 2px solid var(--line); border-radius: 16px; padding: 28px 22px;
-  cursor: pointer; color: var(--text); font-family: inherit; text-align: center; transition: all 0.18s;
+  cursor: pointer; color: var(--text); font-family: inherit; text-align: center;
+  transition: border-color 0.2s var(--ease-out), transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
 }
-.mode-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+.mode-card:active { transform: scale(0.99); }
+@media (hover: hover) and (pointer: fine) {
+  .mode-card:hover { border-color: var(--accent); transform: translateY(-5px); box-shadow: 0 18px 44px rgba(0, 210, 122, 0.16); }
+}
 .mode-card__icon { font-size: 2.4rem; margin-bottom: 10px; }
 .mode-card h3 { font-size: 1.25rem; margin-bottom: 8px; }
 .mode-card p { color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; }
@@ -381,9 +391,13 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
 .third-card {
   position: relative; background: var(--bg-card); border: 2px solid var(--line); border-radius: 12px;
   padding: 16px 12px; cursor: pointer; color: var(--text); font-family: inherit;
-  display: flex; flex-direction: column; align-items: center; gap: 6px; transition: all 0.15s;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  transition: border-color 0.18s var(--ease-out), background 0.18s var(--ease-out), transform 0.12s var(--ease-out);
 }
-.third-card:hover { border-color: var(--text-dim); }
+.third-card:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  .third-card:hover { border-color: var(--text-dim); transform: translateY(-2px); }
+}
 .third-card.is-sel { border-color: var(--accent); background: rgba(22,199,132,.12); }
 .third-card img { width: 44px; height: 44px; object-fit: contain; }
 .third-card__name { font-weight: 700; font-size: 0.9rem; text-align: center; }
@@ -466,6 +480,35 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
 /* Accesibilidad: si el usuario pide menos movimiento, lo apagamos */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; }
+}
+
+/* ===== Pulido (skills: emil-design-eng + high-end-visual-design) ===== */
+/* Transiciones con curvas fuertes en lo interactivo */
+.sim-next, .sim-back, .sim-reset, .load-more__btn, .sim-team,
+.bracket-team, .cines-links a, .btn-fav, .btn-share, .genre-select, .score {
+  transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out),
+    border-color 0.18s var(--ease-out), transform 0.12s var(--ease-out), box-shadow 0.18s var(--ease-out);
+}
+/* Feedback físico al presionar (se siente que responde) */
+.sim-next:active, .sim-back:active, .sim-reset:active, .load-more__btn:active,
+.sim-team:active, .bracket-team[data-name]:active, .third-card:active,
+.cines-links a:active, .btn-fav:active, .btn-share:active { transform: scale(0.97); }
+
+/* Foco visible para teclado (accesibilidad) */
+:where(button, a, input, select):focus-visible {
+  outline: 2px solid var(--wc-blue);
+  outline-offset: 2px;
+}
+
+/* Grano sutil fijo: rompe la planitud digital (toque premium) */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* ===== Footer ===== */

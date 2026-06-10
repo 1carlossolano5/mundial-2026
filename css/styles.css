@@ -155,17 +155,56 @@ body {
 }
 
 /* ===== Simulador ===== */
-.sim-steps { display: inline-flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.sim-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.sim-steps { display: inline-flex; gap: 8px; flex-wrap: wrap; }
 .sim-step {
   background: var(--bg-card); border: 1px solid var(--line); color: var(--text-dim);
   padding: 7px 14px; border-radius: 999px; font-size: 0.85rem; font-weight: 600;
 }
 .sim-step.is-active { background: var(--accent); border-color: var(--accent); color: #04130c; }
 .sim-reset {
-  float: right; background: transparent; border: 1px solid var(--line); color: var(--text-dim);
+  background: transparent; border: 1px solid var(--line); color: var(--text-dim);
   padding: 7px 14px; border-radius: 999px; cursor: pointer; font-family: inherit; font-size: 0.82rem;
 }
 .sim-reset:hover { border-color: var(--accent-2); color: var(--text); }
+
+/* Selector de modo */
+.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+.mode-card {
+  background: var(--bg-card); border: 2px solid var(--line); border-radius: 16px; padding: 28px 22px;
+  cursor: pointer; color: var(--text); font-family: inherit; text-align: center; transition: all 0.18s;
+}
+.mode-card:hover { border-color: var(--accent); transform: translateY(-4px); }
+.mode-card__icon { font-size: 2.4rem; margin-bottom: 10px; }
+.mode-card h3 { font-size: 1.25rem; margin-bottom: 8px; }
+.mode-card p { color: var(--text-dim); font-size: 0.9rem; line-height: 1.5; }
+
+/* Grid más ancho para el modo resultados */
+.groups-grid--wide { grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+
+/* Tabla de posiciones */
+.stand { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.stand th { color: var(--text-dim); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; padding: 6px 4px; text-align: center; }
+.stand td { padding: 6px 4px; text-align: center; border-top: 1px solid var(--line); }
+.stand__team { text-align: left !important; display: flex; align-items: center; gap: 7px; }
+.stand__team img { width: 20px; height: 20px; object-fit: contain; }
+.stand tr.q1 td:first-child { color: var(--accent); font-weight: 800; }
+.stand tr.q3 td:first-child { color: var(--accent-2); font-weight: 800; }
+.stand tr.q4 { opacity: 0.6; }
+
+/* Marcadores */
+.matches { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.match-row { display: grid; grid-template-columns: 1fr 42px 14px 42px 1fr; align-items: center; gap: 6px; padding: 5px 0; }
+.match-team { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; overflow: hidden; }
+.match-team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.match-team.away { justify-content: flex-end; text-align: right; }
+.match-team img { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
+.match-row .vs { text-align: center; color: var(--text-dim); }
+.score {
+  width: 42px; padding: 6px 0; text-align: center; background: var(--bg-soft);
+  border: 1px solid var(--line); border-radius: 8px; color: var(--text); font-family: inherit; font-size: 0.9rem;
+}
+.score:focus { outline: none; border-color: var(--accent); }
 .sim-hint { color: var(--text-dim); margin: 14px 0 22px; line-height: 1.5; clear: both; }
 .sim-hint b { color: var(--text); }
 

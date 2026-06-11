@@ -181,3 +181,20 @@ const STADIUMS = [
     wc: "Sede del Mundial 2026 con partidos de eliminatorias, incluido el del tercer puesto.",
   },
 ];
+
+// Traducción de los nombres de selección (como los entrega TheSportsDB) → español.
+const TEAM_ES = {
+  "Algeria": "Argelia", "Argentina": "Argentina", "Australia": "Australia", "Austria": "Austria",
+  "Belgium": "Bélgica", "Bosnia-Herzegovina": "Bosnia y Herzegovina", "Brazil": "Brasil",
+  "Canada": "Canadá", "Cape Verde": "Cabo Verde", "Colombia": "Colombia", "Croatia": "Croacia",
+  "Curaçao": "Curazao", "Curacao": "Curazao", "Czech Republic": "Chequia", "Czechia": "Chequia",
+  "DR Congo": "R.D. Congo", "Ecuador": "Ecuador", "Egypt": "Egipto", "England": "Inglaterra",
+  "France": "Francia", "Germany": "Alemania", "Ghana": "Ghana", "Haiti": "Haití", "Iran": "Irán",
+  "Iraq": "Irak", "Ivory Coast": "Costa de Marfil", "Japan": "Japón", "Jordan": "Jordania",
+  "Mexico": "México", "Morocco": "Marruecos", "Netherlands": "Países Bajos", "New Zealand": "Nueva Zelanda",
+  "Norway": "Noruega", "Panama": "Panamá", "Paraguay": "Paraguay", "Portugal": "Portugal",
+  "Qatar": "Catar", "Saudi Arabia": "Arabia Saudita", "Scotland": "Escocia", "Senegal": "Senegal",
+  "South Africa": "Sudáfrica", "South Korea": "Corea del Sur", "Spain": "España", "Sweden": "Suecia",
+  "Switzerland": "Suiza", "Tunisia": "Túnez", "Turkey": "Turquía", "Türkiye": "Turquía",
+  "USA": "Estados Unidos", "United States": "Estados Unidos", "Uruguay": "Uruguay", "Uzbekistan": "Uzbekistán",
+};

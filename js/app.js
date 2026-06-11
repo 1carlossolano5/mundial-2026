@@ -204,7 +204,15 @@ function matchDate(e) {
   return isNaN(d.getTime()) ? null : d;
 }
 function fmtHoraLocal(d) {
-  return d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return d.toLocaleTimeString("es", { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
+// Nombres de equipos en español si el navegador está en español; si no, se dejan
+// como los entrega la API (depende del idioma de quien abre el link).
+const APP_ES = (navigator.language || "es").toLowerCase().startsWith("es");
+function teamName(x) {
+  if (!x) return "";
+  return APP_ES && typeof TEAM_ES !== "undefined" ? TEAM_ES[x] || x : x;
 }
 function fmtFechaLocal(d) {
   return d.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" });
@@ -220,13 +228,13 @@ function matchCard(e) {
   return `
     <div class="match-card ${jugado ? "is-played" : ""}">
       <div class="mc__team mc__home">
-        <span>${e.strHomeTeam || ""}</span>
+        <span>${teamName(e.strHomeTeam)}</span>
         <img src="${e.strHomeTeamBadge || ""}" alt="" loading="lazy" />
       </div>
       <div class="mc__center">${centro}${jugado ? `<span class="mc__ft">Final</span>` : ""}</div>
       <div class="mc__team mc__away">
         <img src="${e.strAwayTeamBadge || ""}" alt="" loading="lazy" />
-        <span>${e.strAwayTeam || ""}</span>
+        <span>${teamName(e.strAwayTeam)}</span>
       </div>
       ${e.strVenue ? `<div class="mc__venue">📍 ${e.strVenue}</div>` : ""}
     </div>`;

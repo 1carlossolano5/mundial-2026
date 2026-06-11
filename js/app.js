@@ -194,11 +194,29 @@ function fmtFecha(s) {
   return m ? `${d} de ${MESES[m - 1]}` : s;
 }
 
+// TheSportsDB entrega las horas en UTC. Las convertimos a la hora LOCAL
+// del visitante (en Colombia se ve hora de Colombia, etc.) usando su navegador.
+function matchDate(e) {
+  const ts = e.strTimestamp
+    ? e.strTimestamp + "Z"
+    : (e.dateEvent || "") + "T" + (e.strTime || "00:00:00") + "Z";
+  const d = new Date(ts);
+  return isNaN(d.getTime()) ? null : d;
+}
+function fmtHoraLocal(d) {
+  return d.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+function fmtFechaLocal(d) {
+  return d.toLocaleDateString("es", { weekday: "long", day: "numeric", month: "long" });
+}
+
 function matchCard(e) {
   const jugado = e.intHomeScore != null && e.intAwayScore != null;
+  const d = matchDate(e);
+  const hora = d ? fmtHoraLocal(d) : (e.strTime || "").slice(0, 5) || "vs";
   const centro = jugado
     ? `<span class="mc__score">${e.intHomeScore} - ${e.intAwayScore}</span>`
-    : `<span class="mc__time">${(e.strTime || "").slice(0, 5) || "vs"}</span>`;
+    : `<span class="mc__time">${hora}</span>`;
   return `
     <div class="match-card ${jugado ? "is-played" : ""}">
       <div class="mc__team mc__home">
@@ -248,11 +266,14 @@ async function loadCalendar() {
       return;
     }
     let html = "";
-    let fechaActual = "";
+    let claveActual = "";
     for (const e of events) {
-      if (e.dateEvent !== fechaActual) {
-        fechaActual = e.dateEvent;
-        html += `<h3 class="cal-date">${fmtFecha(e.dateEvent)}</h3>`;
+      const d = matchDate(e);
+      const clave = d ? d.toLocaleDateString("en-CA") : e.dateEvent;
+      if (clave !== claveActual) {
+        claveActual = clave;
+        const label = d ? fmtFechaLocal(d) : fmtFecha(e.dateEvent);
+        html += `<h3 class="cal-date">${label}</h3>`;
       }
       html += matchCard(e);
     }

@@ -11,71 +11,86 @@
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <header class="header">
-    <div class="header__inner">
+  <div class="app">
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar">
       <a href="#" class="logo" data-section="inicio">
-        <span class="logo__icon">🏆</span>
-        <span class="logo__text">Mundial <strong>2026</strong></span>
+        <span class="logo__mark">26</span>
+        <span class="logo__text">Mundial</span>
       </a>
       <nav class="nav" id="nav">
-        <button class="nav__btn is-active" data-section="inicio">Inicio</button>
-        <button class="nav__btn" data-section="grupos">Grupos</button>
-        <button class="nav__btn" data-section="estadios">Estadios</button>
-        <button class="nav__btn" data-section="calendario">Calendario</button>
-        <button class="nav__btn" data-section="simulador">🎮 Simulador</button>
+        <button class="nav__btn is-active" data-section="inicio"><b>01</b> Inicio</button>
+        <button class="nav__btn" data-section="grupos"><b>02</b> Grupos</button>
+        <button class="nav__btn" data-section="estadios"><b>03</b> Estadios</button>
+        <button class="nav__btn" data-section="calendario"><b>04</b> Calendario</button>
+        <button class="nav__btn" data-section="simulador"><b>05</b> Simulador</button>
       </nav>
-    </div>
-  </header>
-
-  <main class="main">
-    <!-- INICIO -->
-    <section class="view is-active" id="inicio">
-      <div class="hero">
-        <div class="hero__echo" aria-hidden="true"></div>
-        <div class="hero__photo" aria-hidden="true"></div>
-        <div class="hero__content">
-          <div class="hero__badge">🏆</div>
-          <h1 class="hero__title">Copa Mundial <span>2026</span></h1>
-          <p class="hero__sub">Estados Unidos · México · Canadá — 48 selecciones, 12 grupos, 104 partidos.</p>
-          <div class="countdown" id="countdown" aria-label="Cuenta regresiva"></div>
-          <a class="btn hero__cta" data-section="simulador" href="#">
-            <span>Arma tu Mundial</span>
-            <span class="btn__icon" aria-hidden="true">→</span>
-          </a>
-        </div>
+      <div class="sidebar__foot">
+        🇺🇸 🇲🇽 🇨🇦<br />
+        Hecho por <strong>Carlos Solano</strong>
       </div>
-      <div class="ticker" id="ticker" aria-hidden="true"><div class="ticker__track" id="tickerTrack"></div></div>
-    </section>
+    </aside>
 
-    <!-- GRUPOS -->
-    <section class="view" id="grupos">
-      <h2 class="view__title">Grupos</h2>
-      <p class="view__intro">Los 12 grupos del Mundial 2026. Clasifican el <strong>1° y 2°</strong> de cada grupo, más los <strong>8 mejores terceros</strong>. Colombia quedó en el Grupo K.</p>
-      <div class="status" id="gruposStatus" hidden><div class="spinner"></div><p>Cargando...</p></div>
-      <div class="groups-grid" id="gruposGrid"></div>
-    </section>
+    <!-- ===== Contenido ===== -->
+    <main class="main">
+      <!-- INICIO -->
+      <section class="view is-active" id="inicio">
+        <div class="hero">
+          <div class="hero__blocks" aria-hidden="true">
+            <span class="hb hb--red"></span>
+            <span class="hb hb--green"></span>
+            <span class="hb hb--blue"></span>
+            <span class="hb hb--orange"></span>
+          </div>
+          <div class="hero__photo" aria-hidden="true"></div>
+          <div class="hero__content">
+            <span class="hero__kicker">Estados Unidos · México · Canadá</span>
+            <h1 class="hero__title">Copa<br />Mundial<br /><span>2026</span></h1>
+            <p class="hero__sub">48 selecciones · 12 grupos · 104 partidos. La fiesta más grande del fútbol.</p>
+            <div class="countdown" id="countdown" aria-label="Cuenta regresiva"></div>
+            <a class="btn hero__cta" data-section="simulador" href="#">
+              <span>Arma tu Mundial</span>
+              <span class="btn__icon" aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+        <div class="ticker" id="ticker" aria-hidden="true"><div class="ticker__track" id="tickerTrack"></div></div>
+      </section>
 
-    <!-- ESTADIOS -->
-    <section class="view" id="estadios">
-      <h2 class="view__title">Estadios</h2>
-      <p class="view__intro">16 sedes en 3 países: <strong>11 en Estados Unidos</strong> 🇺🇸, <strong>3 en México</strong> 🇲🇽 y <strong>2 en Canadá</strong> 🇨🇦.</p>
-      <div class="stadiums-grid" id="estadiosGrid"></div>
-    </section>
+      <!-- GRUPOS -->
+      <section class="view" id="grupos">
+        <h2 class="view__title">Grupos</h2>
+        <p class="view__intro">Los 12 grupos del Mundial 2026. Clasifican el <strong>1° y 2°</strong> de cada grupo, más los <strong>8 mejores terceros</strong>. Colombia quedó en el Grupo K.</p>
+        <div class="status" id="gruposStatus" hidden><div class="spinner"></div><p>Cargando...</p></div>
+        <div class="groups-grid" id="gruposGrid"></div>
+      </section>
 
-    <!-- CALENDARIO -->
-    <section class="view" id="calendario">
-      <h2 class="view__title">Calendario y resultados</h2>
-      <p class="view__intro">Partidos con horario y sede. Los <strong>resultados se actualizan</strong> a medida que se juegan.</p>
-      <div class="status" id="calStatus" hidden><div class="spinner"></div><p>Cargando partidos...</p></div>
-      <div class="calendar" id="calList"></div>
-    </section>
+      <!-- ESTADIOS -->
+      <section class="view" id="estadios">
+        <h2 class="view__title">Estadios</h2>
+        <p class="view__intro">16 sedes en 3 países: <strong>11 en Estados Unidos</strong> 🇺🇸, <strong>3 en México</strong> 🇲🇽 y <strong>2 en Canadá</strong> 🇨🇦.</p>
+        <div class="stadiums-grid" id="estadiosGrid"></div>
+      </section>
 
-    <!-- SIMULADOR -->
-    <section class="view" id="simulador">
-      <h2 class="view__title">🎮 Simulador del Mundial</h2>
-      <div id="simRoot"></div>
-    </section>
-  </main>
+      <!-- CALENDARIO -->
+      <section class="view" id="calendario">
+        <h2 class="view__title">Calendario y resultados</h2>
+        <p class="view__intro">Partidos con horario y sede. Los <strong>resultados se actualizan</strong> a medida que se juegan.</p>
+        <div class="status" id="calStatus" hidden><div class="spinner"></div><p>Cargando partidos...</p></div>
+        <div class="calendar" id="calList"></div>
+      </section>
+
+      <!-- SIMULADOR -->
+      <section class="view" id="simulador">
+        <h2 class="view__title">🎮 Simulador del Mundial</h2>
+        <div id="simRoot"></div>
+      </section>
+
+      <footer class="footer">
+        <p>Hecho por <strong>Carlos Solano</strong> · Datos de TheSportsDB</p>
+      </footer>
+    </main>
+  </div>
 
   <!-- Modal de estadio -->
   <div class="modal" id="stadiumModal" hidden>
@@ -85,10 +100,6 @@
       <div id="stadiumContent"></div>
     </div>
   </div>
-
-  <footer class="footer">
-    <p>Hecho por <strong>Carlos Solano</strong> · Datos de API-Football</p>
-  </footer>
 
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>

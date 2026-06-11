@@ -400,6 +400,28 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
 .bracket-team.is-winner { background: rgba(12, 155, 83, 0.16); font-weight: 800; }
 .bracket-team.is-empty { color: var(--ink-2); cursor: default; font-style: italic; }
 
+/* Llaves en modo resultados (marcador + penales) */
+.bk-row { display: flex; align-items: center; gap: 8px; padding: 8px 11px; border-bottom: 1px solid var(--line); font-size: 0.82rem; }
+.bk-row img { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
+.bk-row span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.bk-row.is-winner { background: rgba(12, 155, 83, 0.16); font-weight: 800; }
+.bk-input {
+  width: 42px; padding: 6px 0; text-align: center; flex-shrink: 0;
+  border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--ink);
+  font-family: var(--font-head); font-size: 0.95rem; font-variant-numeric: tabular-nums;
+}
+.bk-input:focus { outline: none; border-color: var(--green); box-shadow: 0 0 0 3px rgba(12, 155, 83, 0.18); }
+.bk-input::-webkit-inner-spin-button, .bk-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.bk-input { -moz-appearance: textfield; }
+.bk-pen { padding: 8px 11px; border-top: 1px dashed var(--line); font-size: 0.72rem; color: var(--ink-2); }
+.bk-pen__btns { display: flex; gap: 6px; margin-top: 6px; }
+.bk-pen-btn {
+  flex: 1; padding: 6px 8px; border: 1px solid var(--line); background: var(--surface);
+  border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 0.72rem; font-weight: 700; color: var(--ink);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.bk-pen-btn.is-on { background: var(--green); border-color: var(--green); color: #fff; }
+
 .champion { text-align: center; border-radius: 18px; padding: 26px; margin-bottom: 26px; background: linear-gradient(135deg, var(--orange), var(--red)); color: #fff; }
 .champion > span { font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-size: 0.85rem; opacity: 0.9; }
 .champion__team { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; }

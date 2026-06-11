@@ -47,7 +47,7 @@ const ROUND_NAMES = ["32avos", "16avos", "Cuartos", "Semifinal", "Final"];
 let sim = loadSim();
 
 function blankSim() {
-  return { mode: null, step: "groups", order: {}, scores: {}, thirds: [], picks: {} };
+  return { mode: null, step: "groups", order: {}, scores: {}, thirds: [], picks: {}, kscores: {} };
 }
 function loadSim() {
   try {
@@ -168,7 +168,20 @@ function buildR32() {
     b: slotTeam(m.b, idx, assign),
   }));
 }
-function pickOf(r, i, a, b) {
+// Ganador de una llave. Modo fácil = clic guardado. Modo resultados = por marcador
+// (+ penales si hay empate). Devuelve el equipo ganador o null si falta definir.
+function matchWinner(r, i, a, b) {
+  if (sim.mode === "results") {
+    const s = sim.kscores[`${r}-${i}`];
+    if (!s || s.h === "" || s.a === "" || s.h == null || s.a == null) return null;
+    const hn = Number(s.h), an = Number(s.a);
+    if (Number.isNaN(hn) || Number.isNaN(an)) return null;
+    if (hn > an) return a;
+    if (an > hn) return b;
+    if (s.pen && a && a.name === s.pen) return a;
+    if (s.pen && b && b.name === s.pen) return b;
+    return null; // empate sin penales resueltos
+  }
   const name = sim.picks[`${r}-${i}`];
   if (!name) return null;
   if (a && a.name === name) return a;
@@ -176,13 +189,13 @@ function pickOf(r, i, a, b) {
   return null;
 }
 function computeRounds() {
-  let prev = buildR32().map((m, i) => ({ a: m.a, b: m.b, winner: pickOf(0, i, m.a, m.b) }));
+  let prev = buildR32().map((m, i) => ({ a: m.a, b: m.b, winner: matchWinner(0, i, m.a, m.b) }));
   const rounds = [prev];
   for (let r = 1; r < 5; r++) {
     const cur = [];
     for (let i = 0; i < prev.length / 2; i++) {
       const a = prev[2 * i].winner, b = prev[2 * i + 1].winner;
-      cur.push({ a, b, winner: pickOf(r, i, a, b) });
+      cur.push({ a, b, winner: matchWinner(r, i, a, b) });
     }
     rounds.push(cur);
     prev = cur;
@@ -392,6 +405,7 @@ function renderThirds() {
 }
 
 // ---- Paso eliminatorias ----
+// Modo fácil: equipo clicable
 function teamSlot(team, m, r, i) {
   if (!team) return `<div class="bracket-team is-empty">Por definir</div>`;
   const win = m.winner && m.winner.name === team.name;
@@ -399,12 +413,44 @@ function teamSlot(team, m, r, i) {
     <img src="${team.img}" alt=""><span>${team.name}</span>
   </button>`;
 }
+// Modo resultados: marcador por llave + penales si hay empate
+function bracketScoreMatch(m, r, i) {
+  if (!m.a || !m.b) {
+    const stat = (t) => (t
+      ? `<div class="bracket-team"><img src="${t.img}" alt=""><span>${t.name}</span></div>`
+      : `<div class="bracket-team is-empty">Por definir</div>`);
+    return `<div class="bracket-match">${stat(m.a)}${stat(m.b)}</div>`;
+  }
+  const s = sim.kscores[`${r}-${i}`] || {};
+  const win = m.winner;
+  const lleno = s.h !== "" && s.a !== "" && s.h != null && s.a != null;
+  const empate = lleno && Number(s.h) === Number(s.a);
+  const row = (team, side) => `
+    <div class="bk-row ${win && win.name === team.name ? "is-winner" : ""}">
+      <img src="${team.img}" alt="" /><span>${team.name}</span>
+      <input class="bk-input" type="number" min="0" inputmode="numeric" value="${s[side] ?? ""}" data-r="${r}" data-i="${i}" data-side="${side}" aria-label="Goles ${team.name}" />
+    </div>`;
+  return `<div class="bracket-match bk-match">
+    ${row(m.a, "h")}
+    ${row(m.b, "a")}
+    ${empate ? `<div class="bk-pen">
+      <span>Empate · pasa por penales:</span>
+      <div class="bk-pen__btns">
+        <button class="bk-pen-btn ${s.pen === m.a.name ? "is-on" : ""}" data-pen="${m.a.name}" data-r="${r}" data-i="${i}">${m.a.name}</button>
+        <button class="bk-pen-btn ${s.pen === m.b.name ? "is-on" : ""}" data-pen="${m.b.name}" data-r="${r}" data-i="${i}">${m.b.name}</button>
+      </div>
+    </div>` : ""}
+  </div>`;
+}
 function renderBracket() {
   const rounds = computeRounds();
   const champ = rounds[4][0].winner;
+  const results = sim.mode === "results";
   $simRoot.innerHTML = `
     ${topBar("bracket")}
-    <p class="sim-hint">Haz clic en quien gana cada llave hasta el campeón. 🏆 (Cuadro oficial FIFA 2026.)</p>
+    <p class="sim-hint">${results
+      ? "Mete el marcador de cada llave. Si hay empate, elige quién pasa por <b>penales</b>. 🏆 (Cuadro oficial FIFA 2026.)"
+      : "Haz clic en quien gana cada llave hasta el campeón. 🏆 (Cuadro oficial FIFA 2026.)"}</p>
     ${
       champ
         ? `<div class="champion"><span>🏆 Tu campeón del Mundial</span>
@@ -416,7 +462,7 @@ function renderBracket() {
         .map(
           (matches, r) => `<div class="bracket__col">
             <div class="bracket__round">${ROUND_NAMES[r]}</div>
-            ${matches.map((m, i) => `<div class="bracket-match">${teamSlot(m.a, m, r, i)}${teamSlot(m.b, m, r, i)}</div>`).join("")}
+            ${matches.map((m, i) => results ? bracketScoreMatch(m, r, i) : `<div class="bracket-match">${teamSlot(m.a, m, r, i)}${teamSlot(m.b, m, r, i)}</div>`).join("")}
           </div>`
         )
         .join("")}
@@ -425,13 +471,36 @@ function renderBracket() {
       <button class="btn btn--ghost sim-back" id="simBack"><span class="btn__icon" aria-hidden="true">←</span><span>Volver</span></button>
     </div>`;
 
-  $simRoot.querySelectorAll(".bracket-team[data-name]").forEach((btn) =>
-    btn.addEventListener("click", () => {
-      sim.picks[`${btn.dataset.r}-${btn.dataset.i}`] = btn.dataset.name;
-      saveSim();
-      renderBracket();
-    })
-  );
+  if (results) {
+    // Marcadores: recalculamos al salir del campo (change) para no perder el foco.
+    $simRoot.querySelectorAll(".bk-input").forEach((inp) =>
+      inp.addEventListener("change", () => {
+        const key = `${inp.dataset.r}-${inp.dataset.i}`;
+        const s = sim.kscores[key] || (sim.kscores[key] = { h: "", a: "", pen: null });
+        s[inp.dataset.side] = inp.value;
+        if (s.h !== "" && s.a !== "" && Number(s.h) !== Number(s.a)) s.pen = null;
+        saveSim();
+        renderBracket();
+      })
+    );
+    $simRoot.querySelectorAll(".bk-pen-btn").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        const key = `${btn.dataset.r}-${btn.dataset.i}`;
+        const s = sim.kscores[key] || (sim.kscores[key] = { h: "", a: "", pen: null });
+        s.pen = btn.dataset.pen;
+        saveSim();
+        renderBracket();
+      })
+    );
+  } else {
+    $simRoot.querySelectorAll(".bracket-team[data-name]").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        sim.picks[`${btn.dataset.r}-${btn.dataset.i}`] = btn.dataset.name;
+        saveSim();
+        renderBracket();
+      })
+    );
+  }
   bindCommon();
   document.getElementById("simBack").addEventListener("click", () => {
     sim.step = sim.mode === "results" ? "groups" : "thirds";

@@ -526,9 +526,12 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
 .ticker__item { display: inline-flex; align-items: center; gap: 9px; color: var(--text-dim); font-weight: 600; font-size: 0.9rem; }
 .ticker__item img { width: 22px; height: 22px; object-fit: contain; }
 
-/* Accesibilidad: si el usuario pide menos movimiento, lo apagamos */
+/* Accesibilidad: con "reducir movimiento" mantenemos las animaciones suaves de
+   marca (fondo, patrón, franja, ticker) pero quitamos las entradas con
+   desplazamiento de las tarjetas (que es lo que puede marear o bloquear). */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; }
+  .group-card, .third-card, .mode-card, .bracket-match, .stadium-card,
+  .view.is-active { animation: none !important; }
 }
 
 /* ===== Sistema de botones premium (emil + high-end) ===== */

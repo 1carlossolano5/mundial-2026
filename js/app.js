@@ -214,15 +214,34 @@ function matchCard(e) {
     </div>`;
 }
 
+// Jornadas de grupos (1-3) + códigos de rondas de eliminatorias de TheSportsDB
+// (125 Final, 126 Semis, 127 Cuartos, 128 Octavos/16avos, 129 32avos).
+const CAL_ROUNDS = [1, 2, 3, 129, 128, 127, 126, 125];
+
 async function loadCalendar() {
   calendarioCargado = true;
   $calStatus.hidden = false;
   $calList.innerHTML = "";
   try {
-    const data = await api("eventsseason.php", { id: WC_LEAGUE, s: SEASON });
-    const events = (data.events || [])
-      .slice()
-      .sort((a, b) => (a.strTimestamp || "").localeCompare(b.strTimestamp || ""));
+    // Pedimos todas las jornadas/rondas en paralelo y las combinamos.
+    const listas = await Promise.all(
+      CAL_ROUNDS.map((r) =>
+        api("eventsround.php", { id: WC_LEAGUE, r, s: SEASON })
+          .then((d) => d.events || [])
+          .catch(() => [])
+      )
+    );
+    const vistos = new Set();
+    const events = [];
+    for (const lista of listas) {
+      for (const e of lista) {
+        if (e && e.idEvent && !vistos.has(e.idEvent)) {
+          vistos.add(e.idEvent);
+          events.push(e);
+        }
+      }
+    }
+    events.sort((a, b) => (a.strTimestamp || "").localeCompare(b.strTimestamp || ""));
     $calStatus.hidden = true;
     if (!events.length) {
       $calList.innerHTML = `<p class="placeholder">Aún no hay partidos publicados por la API. Aparecerán a medida que se acerque y juegue el torneo.</p>`;

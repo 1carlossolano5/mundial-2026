@@ -163,12 +163,24 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
   border: 1px solid var(--line);
   border-radius: 20px;
 }
-/* Vela oscura radial: oscurece el centro para que el texto se lea sobre el patrón */
+/* Foto opcional del hero: si existe img/hero.jpg, cubre el patrón.
+   Si no existe, queda transparente y se ve el patrón oficial detrás. */
+.hero__photo {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image: url("../img/hero.jpg");
+  background-size: cover;
+  background-position: center;
+}
+/* Vela oscura radial: oscurece el centro para que el texto se lea sobre el patrón/foto */
 .hero::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 60% 70% at 50% 50%, rgba(6, 13, 26, 0.88) 0%, rgba(6, 13, 26, 0.55) 45%, transparent 75%);
+  z-index: 2;
+  background:
+    radial-gradient(ellipse 65% 75% at 50% 50%, rgba(6, 13, 26, 0.9) 0%, rgba(6, 13, 26, 0.6) 45%, rgba(6, 13, 26, 0.35) 100%);
 }
 /* "eco" de rectángulos redondeados multicolor, como el logo 2026 */
 .hero__echo {
@@ -191,11 +203,12 @@ h1, h2, h3, .logo, .view__title, .hero__title, .group-card__head,
     0 0 0 494px var(--wc-orange), 0 0 0 520px var(--wc-red),
     0 0 0 560px var(--wc-green);
   opacity: 0.92;
+  z-index: 0;
   animation: spinSlow 70s linear infinite;
 }
 .hero__content {
   position: relative;
-  z-index: 1;
+  z-index: 3;
   text-align: center;
   padding: 20px;
   max-width: 640px;

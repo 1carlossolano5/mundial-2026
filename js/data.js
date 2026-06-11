@@ -81,22 +81,103 @@ const GROUPS = [
   ]},
 ];
 
-// Las 16 sedes del Mundial 2026 (capacidades aproximadas).
+// Las 16 sedes del Mundial 2026 (capacidades aproximadas) con foto, resumen e historia.
+// Las fotos van en img/estadios/<slug>.jpg (si falta alguna, se muestra un degradado).
 const STADIUMS = [
-  { name: "Estadio Azteca", city: "Ciudad de México", country: "México", flag: "🇲🇽", cap: "83.000" },
-  { name: "Estadio Akron", city: "Guadalajara", country: "México", flag: "🇲🇽", cap: "48.000" },
-  { name: "Estadio BBVA", city: "Monterrey", country: "México", flag: "🇲🇽", cap: "53.500" },
-  { name: "BC Place", city: "Vancouver", country: "Canadá", flag: "🇨🇦", cap: "54.500" },
-  { name: "BMO Field", city: "Toronto", country: "Canadá", flag: "🇨🇦", cap: "45.000" },
-  { name: "MetLife Stadium", city: "Nueva York / Nueva Jersey", country: "EE.UU.", flag: "🇺🇸", cap: "82.500" },
-  { name: "SoFi Stadium", city: "Los Ángeles", country: "EE.UU.", flag: "🇺🇸", cap: "70.000" },
-  { name: "AT&T Stadium", city: "Dallas", country: "EE.UU.", flag: "🇺🇸", cap: "80.000" },
-  { name: "NRG Stadium", city: "Houston", country: "EE.UU.", flag: "🇺🇸", cap: "72.000" },
-  { name: "Mercedes-Benz Stadium", city: "Atlanta", country: "EE.UU.", flag: "🇺🇸", cap: "71.000" },
-  { name: "Arrowhead Stadium", city: "Kansas City", country: "EE.UU.", flag: "🇺🇸", cap: "76.000" },
-  { name: "Lincoln Financial Field", city: "Filadelfia", country: "EE.UU.", flag: "🇺🇸", cap: "69.000" },
-  { name: "Levi's Stadium", city: "San Francisco Bay", country: "EE.UU.", flag: "🇺🇸", cap: "68.500" },
-  { name: "Lumen Field", city: "Seattle", country: "EE.UU.", flag: "🇺🇸", cap: "68.700" },
-  { name: "Gillette Stadium", city: "Boston", country: "EE.UU.", flag: "🇺🇸", cap: "65.900" },
-  { name: "Hard Rock Stadium", city: "Miami", country: "EE.UU.", flag: "🇺🇸", cap: "65.300" },
+  {
+    name: "Estadio Azteca", city: "Ciudad de México", country: "México", flag: "🇲🇽", cap: "83.000",
+    img: "img/estadios/azteca.jpg",
+    desc: "Templo del fútbol mexicano, inaugurado en 1966. Casa de la selección de México y del Club América.",
+    wc: "Único estadio que ha albergado DOS finales del Mundial (1970 y 1986). En 2026 será el primero del mundo en jugar partidos en tres Copas del Mundo, e inaugurará el torneo. Aquí Maradona marcó la 'Mano de Dios' y el 'Gol del Siglo' en 1986.",
+  },
+  {
+    name: "Estadio Akron", city: "Guadalajara", country: "México", flag: "🇲🇽", cap: "48.000",
+    img: "img/estadios/akron.jpg",
+    desc: "Casa de las Chivas de Guadalajara (2010). Su diseño evoca un volcán rodeado de una nube.",
+    wc: "Debuta como sede de una Copa del Mundo en 2026.",
+  },
+  {
+    name: "Estadio BBVA", city: "Monterrey", country: "México", flag: "🇲🇽", cap: "53.500",
+    img: "img/estadios/bbva.jpg",
+    desc: "Apodado 'El Gigante de Acero', casa de Rayados de Monterrey (2015), con vista al Cerro de la Silla.",
+    wc: "Será sede mundialista por primera vez en 2026.",
+  },
+  {
+    name: "BC Place", city: "Vancouver", country: "Canadá", flag: "🇨🇦", cap: "54.500",
+    img: "img/estadios/bc-place.jpg",
+    desc: "Estadio de Vancouver con techo retráctil de cables, inaugurado en 1983 y renovado en 2011.",
+    wc: "Albergó la final del Mundial Femenino 2015; debuta en el Mundial masculino en 2026.",
+  },
+  {
+    name: "BMO Field", city: "Toronto", country: "Canadá", flag: "🇨🇦", cap: "45.000",
+    img: "img/estadios/bmo.jpg",
+    desc: "Hogar del Toronto FC y de la selección de Canadá, junto al lago Ontario (2007).",
+    wc: "Primera vez como sede del Mundial en 2026; Canadá debuta como anfitrión.",
+  },
+  {
+    name: "MetLife Stadium", city: "Nueva York / Nueva Jersey", country: "EE.UU.", flag: "🇺🇸", cap: "82.500",
+    img: "img/estadios/metlife.jpg",
+    desc: "Uno de los estadios más grandes de EE.UU., casa de los Giants y Jets de la NFL (2010).",
+    wc: "Albergará la GRAN FINAL del Mundial 2026, el 19 de julio.",
+  },
+  {
+    name: "SoFi Stadium", city: "Los Ángeles", country: "EE.UU.", flag: "🇺🇸", cap: "70.000",
+    img: "img/estadios/sofi.jpg",
+    desc: "El estadio más moderno y costoso de EE.UU. (2020), casa de Rams y Chargers, con una pantalla ovalada gigante.",
+    wc: "Debut mundialista en 2026.",
+  },
+  {
+    name: "AT&T Stadium", city: "Dallas", country: "EE.UU.", flag: "🇺🇸", cap: "80.000",
+    img: "img/estadios/att.jpg",
+    desc: "Apodado 'Jerry World', casa de los Cowboys (2009), famoso por su pantalla colgante descomunal.",
+    wc: "Una de las sedes con más partidos del Mundial 2026, incluida una semifinal.",
+  },
+  {
+    name: "NRG Stadium", city: "Houston", country: "EE.UU.", flag: "🇺🇸", cap: "72.000",
+    img: "img/estadios/nrg.jpg",
+    desc: "Primer estadio de la NFL con techo retráctil (2002), casa de los Houston Texans.",
+    wc: "Debuta como sede mundialista en 2026.",
+  },
+  {
+    name: "Mercedes-Benz Stadium", city: "Atlanta", country: "EE.UU.", flag: "🇺🇸", cap: "71.000",
+    img: "img/estadios/mercedes-benz.jpg",
+    desc: "Casa de Falcons y Atlanta United (2017), con un techo retráctil en forma de cámara fotográfica.",
+    wc: "Sede del Mundial 2026 por primera vez, con partidos de eliminatorias.",
+  },
+  {
+    name: "Arrowhead Stadium", city: "Kansas City", country: "EE.UU.", flag: "🇺🇸", cap: "76.000",
+    img: "img/estadios/arrowhead.jpg",
+    desc: "Casa de los Kansas City Chiefs; tiene el récord Guinness al estadio más ruidoso del mundo.",
+    wc: "Debut mundialista en 2026.",
+  },
+  {
+    name: "Lincoln Financial Field", city: "Filadelfia", country: "EE.UU.", flag: "🇺🇸", cap: "69.000",
+    img: "img/estadios/lincoln.jpg",
+    desc: "Hogar de los Philadelphia Eagles, inaugurado en 2003.",
+    wc: "Será sede por primera vez en 2026.",
+  },
+  {
+    name: "Levi's Stadium", city: "San Francisco Bay", country: "EE.UU.", flag: "🇺🇸", cap: "68.500",
+    img: "img/estadios/levis.jpg",
+    desc: "Casa de los San Francisco 49ers (2014) en Santa Clara, referente en tecnología y sostenibilidad.",
+    wc: "Debut como sede mundialista en 2026.",
+  },
+  {
+    name: "Lumen Field", city: "Seattle", country: "EE.UU.", flag: "🇺🇸", cap: "68.700",
+    img: "img/estadios/lumen.jpg",
+    desc: "Casa de Seahawks y Sounders, conocido por su afición ensordecedora.",
+    wc: "Primera vez en un Mundial en 2026.",
+  },
+  {
+    name: "Gillette Stadium", city: "Boston", country: "EE.UU.", flag: "🇺🇸", cap: "65.900",
+    img: "img/estadios/gillette.jpg",
+    desc: "Hogar de los New England Patriots, inaugurado en 2002 en Foxborough.",
+    wc: "Debuta como sede mundialista en 2026.",
+  },
+  {
+    name: "Hard Rock Stadium", city: "Miami", country: "EE.UU.", flag: "🇺🇸", cap: "65.300",
+    img: "img/estadios/hard-rock.jpg",
+    desc: "Casa de los Miami Dolphins y del GP de Miami de Fórmula 1, renovado en 2016.",
+    wc: "Sede del Mundial 2026 con partidos de eliminatorias, incluido el del tercer puesto.",
+  },
 ];

@@ -771,6 +771,19 @@ body::after {
   .mc__score { font-size: 1.2rem; }
 }
 
+/* ===== UX táctil (ui-ux-pro-max: §2 Touch & Interaction, CRÍTICO) ===== */
+/* Quita el retardo de 300ms y evita el zoom por doble-tap en lo interactivo */
+button, a, .nav__btn, .btn, .sim-team, .bracket-team, .third-card,
+.stadium-card, .group-row, .score, .genre-select, select, input {
+  touch-action: manipulation;
+}
+/* En móvil, objetivos táctiles cómodos (mínimo 44px) */
+@media (max-width: 768px) {
+  .nav__btn { min-height: 44px; display: inline-flex; align-items: center; }
+  .score { min-height: 44px; }
+  .sim-team { min-height: 48px; }
+}
+
 /* ===== Footer ===== */
 .footer {
   border-top: 1px solid var(--line);

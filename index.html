@@ -64,7 +64,7 @@
       <!-- GRUPOS -->
       <section class="view" id="grupos">
         <h2 class="view__title">Grupos</h2>
-        <p class="view__intro">Los 12 grupos del Mundial 2026. Clasifican el <strong>1° y 2°</strong> de cada grupo, más los <strong>8 mejores terceros</strong>. Colombia quedó en el Grupo K.</p>
+        <p class="view__intro">Los 12 grupos del Mundial 2026. Clasifican el <strong>1° y 2°</strong> de cada grupo, más los <strong>8 mejores terceros</strong>. Colombia quedó en el Grupo K. <strong>Toca una selección</strong> para ver sus jugadores, técnico y últimos partidos.</p>
         <div class="status" id="gruposStatus" hidden><div class="spinner"></div><p>Cargando...</p></div>
         <div class="groups-grid" id="gruposGrid"></div>
       </section>
@@ -79,7 +79,7 @@
       <!-- CALENDARIO -->
       <section class="view" id="calendario">
         <h2 class="view__title">Calendario y resultados</h2>
-        <p class="view__intro">Partidos con sede y <strong>horario en tu hora local</strong> (según tu país). Los resultados se actualizan a medida que se juegan.</p>
+        <p class="view__intro">Partidos con sede y <strong>horario en tu hora local</strong> (según tu país). Los resultados <strong>en vivo</strong> se actualizan solos. <strong>Toca un partido</strong> para ver alineaciones, goles y estadísticas.</p>
         <div class="status" id="calStatus" hidden><div class="spinner"></div><p>Cargando partidos...</p></div>
         <div class="calendar" id="calList"></div>
       </section>
@@ -102,6 +102,24 @@
     <div class="modal__box" role="dialog" aria-modal="true" aria-label="Detalle del estadio">
       <button class="modal__close" data-close aria-label="Cerrar">✕</button>
       <div id="stadiumContent"></div>
+    </div>
+  </div>
+
+  <!-- Modal de selección (jugadores, técnico, últimos partidos) -->
+  <div class="modal" id="teamModal" hidden>
+    <div class="modal__overlay" data-close></div>
+    <div class="modal__box modal__box--wide" role="dialog" aria-modal="true" aria-label="Detalle de la selección">
+      <button class="modal__close" data-close aria-label="Cerrar">✕</button>
+      <div id="teamContent"></div>
+    </div>
+  </div>
+
+  <!-- Modal de partido (alineaciones, goles, estadísticas) -->
+  <div class="modal" id="matchModal" hidden>
+    <div class="modal__overlay" data-close></div>
+    <div class="modal__box modal__box--wide" role="dialog" aria-modal="true" aria-label="Detalle del partido">
+      <button class="modal__close" data-close aria-label="Cerrar">✕</button>
+      <div id="matchContent"></div>
     </div>
   </div>
 

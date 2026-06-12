@@ -168,11 +168,22 @@ function buildR32() {
     b: slotTeam(m.b, idx, assign),
   }));
 }
+// Marcador guardado de una llave, SOLO si corresponde a estos mismos equipos.
+// (Si cambias resultados de grupos y la llave queda con otro cruce, el
+// marcador viejo se descarta en vez de aplicarse en silencio.)
+function pairKey(a, b) {
+  return `${a ? a.name : ""}|${b ? b.name : ""}`;
+}
+function kscoreFor(r, i, a, b) {
+  const s = sim.kscores[`${r}-${i}`];
+  return s && s.teams === pairKey(a, b) ? s : null;
+}
+
 // Ganador de una llave. Modo fácil = clic guardado. Modo resultados = por marcador
 // (+ penales si hay empate). Devuelve el equipo ganador o null si falta definir.
 function matchWinner(r, i, a, b) {
   if (sim.mode === "results") {
-    const s = sim.kscores[`${r}-${i}`];
+    const s = kscoreFor(r, i, a, b);
     if (!s || s.h === "" || s.a === "" || s.h == null || s.a == null) return null;
     const hn = Number(s.h), an = Number(s.a);
     if (Number.isNaN(hn) || Number.isNaN(an)) return null;
@@ -421,14 +432,15 @@ function bracketScoreMatch(m, r, i) {
       : `<div class="bracket-team is-empty">Por definir</div>`);
     return `<div class="bracket-match">${stat(m.a)}${stat(m.b)}</div>`;
   }
-  const s = sim.kscores[`${r}-${i}`] || {};
+  const teams = pairKey(m.a, m.b);
+  const s = kscoreFor(r, i, m.a, m.b) || {};
   const win = m.winner;
   const lleno = s.h !== "" && s.a !== "" && s.h != null && s.a != null;
   const empate = lleno && Number(s.h) === Number(s.a);
   const row = (team, side) => `
     <div class="bk-row ${win && win.name === team.name ? "is-winner" : ""}">
       <img src="${team.img}" alt="" /><span>${team.name}</span>
-      <input class="bk-input" type="number" min="0" inputmode="numeric" value="${s[side] ?? ""}" data-r="${r}" data-i="${i}" data-side="${side}" aria-label="Goles ${team.name}" />
+      <input class="bk-input" type="number" min="0" inputmode="numeric" value="${s[side] ?? ""}" data-r="${r}" data-i="${i}" data-side="${side}" data-teams="${teams}" aria-label="Goles ${team.name}" />
     </div>`;
   return `<div class="bracket-match bk-match">
     ${row(m.a, "h")}
@@ -436,8 +448,8 @@ function bracketScoreMatch(m, r, i) {
     ${empate ? `<div class="bk-pen">
       <span>Empate · pasa por penales:</span>
       <div class="bk-pen__btns">
-        <button class="bk-pen-btn ${s.pen === m.a.name ? "is-on" : ""}" data-pen="${m.a.name}" data-r="${r}" data-i="${i}">${m.a.name}</button>
-        <button class="bk-pen-btn ${s.pen === m.b.name ? "is-on" : ""}" data-pen="${m.b.name}" data-r="${r}" data-i="${i}">${m.b.name}</button>
+        <button class="bk-pen-btn ${s.pen === m.a.name ? "is-on" : ""}" data-pen="${m.a.name}" data-r="${r}" data-i="${i}" data-teams="${teams}">${m.a.name}</button>
+        <button class="bk-pen-btn ${s.pen === m.b.name ? "is-on" : ""}" data-pen="${m.b.name}" data-r="${r}" data-i="${i}" data-teams="${teams}">${m.b.name}</button>
       </div>
     </div>` : ""}
   </div>`;
@@ -476,7 +488,10 @@ function renderBracket() {
     $simRoot.querySelectorAll(".bk-input").forEach((inp) =>
       inp.addEventListener("change", () => {
         const key = `${inp.dataset.r}-${inp.dataset.i}`;
-        const s = sim.kscores[key] || (sim.kscores[key] = { h: "", a: "", pen: null });
+        let s = sim.kscores[key];
+        if (!s || s.teams !== inp.dataset.teams) {
+          s = sim.kscores[key] = { h: "", a: "", pen: null, teams: inp.dataset.teams };
+        }
         s[inp.dataset.side] = inp.value;
         if (s.h !== "" && s.a !== "" && Number(s.h) !== Number(s.a)) s.pen = null;
         saveSim();
@@ -486,7 +501,10 @@ function renderBracket() {
     $simRoot.querySelectorAll(".bk-pen-btn").forEach((btn) =>
       btn.addEventListener("click", () => {
         const key = `${btn.dataset.r}-${btn.dataset.i}`;
-        const s = sim.kscores[key] || (sim.kscores[key] = { h: "", a: "", pen: null });
+        let s = sim.kscores[key];
+        if (!s || s.teams !== btn.dataset.teams) {
+          s = sim.kscores[key] = { h: "", a: "", pen: null, teams: btn.dataset.teams };
+        }
         s.pen = btn.dataset.pen;
         saveSim();
         renderBracket();

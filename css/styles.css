@@ -526,6 +526,12 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
 .tl-txt b { font-weight: 800; }
 .lu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .lu-col h4 { font-family: var(--font-head); font-size: 0.86rem; margin-bottom: 8px; }
+.lu-dt { font-size: 0.76rem; color: var(--ink-2); margin-bottom: 8px; }
+.lu-dt b { color: var(--ink); }
+.lu-banca {
+  font-size: 0.68rem; font-weight: 800; color: var(--ink-2); text-transform: uppercase;
+  letter-spacing: 1px; margin: 10px 0 4px;
+}
 .lu-row { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 0.83rem; border-bottom: 1px solid var(--line); }
 .lu-num { min-width: 22px; font-family: var(--font-head); font-weight: 800; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .lu-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

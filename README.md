@@ -1,6 +1,11 @@
 # 🏆 Mundial 2026 — Guía y Simulador
 
-Página del Mundial 2026: selecciones, estadios, calendario, resultados en vivo y un simulador del torneo. Hecha con **HTML, CSS y JavaScript puro** + una **función serverless de Vercel** que hace de proxy a [TheSportsDB](https://www.thesportsdb.com/) (cachea respuestas y evita problemas de CORS).
+Página del Mundial 2026: selecciones, estadios, calendario, resultados en vivo y un simulador del torneo. Hecha con **HTML, CSS y JavaScript puro** + dos **funciones serverless de Vercel** que hacen de proxy (cachean respuestas y evitan problemas de CORS) hacia:
+
+- [TheSportsDB](https://www.thesportsdb.com/) — calendario, resultados, escudos y estadísticas.
+- **API pública de FIFA** (api.fifa.com, gratis y sin clave) — alineaciones completas (26 jugadores con foto), táctica, técnico, árbitro y minuto a minuto en español.
+
+Si el sitio se abre sin las funciones `/api` (por ejemplo con **Live Server**), el frontend llama directo a las APIs públicas y todo sigue funcionando.
 
 Proyecto de portafolio de **Carlos Solano**.
 
@@ -45,7 +50,8 @@ Mundial2026/
 │   ├── data.js       ← sorteo oficial, estadios y traducciones (sin API)
 │   └── simulator.js  ← simulador del torneo (cuadro oficial FIFA)
 ├── api/
-│   └── football.js   ← función serverless (proxy a TheSportsDB)
+│   ├── football.js   ← función serverless (proxy a TheSportsDB)
+│   └── fifa.js       ← función serverless (proxy a la API de FIFA)
 ├── img/              ← escudos de las 48 selecciones
 ├── .env.local        ← tu clave local opcional (NO se sube)
 └── .gitignore

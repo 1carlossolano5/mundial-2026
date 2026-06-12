@@ -64,11 +64,11 @@ setInterval(renderCountdown, 1000);
 })();
 
 // ---- Llamadas a la API (vía nuestra función serverless) ----
-async function api(path, params = {}) {
-  const url = new URL("/api/football", window.location.origin);
-  url.searchParams.set("path", path);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-  const res = await fetch(url);
+// Si las funciones /api no existen (p. ej. abriendo con Live Server en vez
+// de Vercel), se llama directo a la API pública para que todo funcione igual.
+async function apiFetch(proxyUrl, directUrl) {
+  let res = await fetch(proxyUrl).catch(() => null);
+  if (!res || res.status === 404 || res.status === 405) res = await fetch(directUrl);
   if (!res.ok) {
     let msg = "Error al conectar con la API (" + res.status + ")";
     try {
@@ -78,6 +78,85 @@ async function api(path, params = {}) {
     throw new Error(msg);
   }
   return res.json();
+}
+
+async function api(path, params = {}) {
+  const url = new URL("/api/football", window.location.origin);
+  url.searchParams.set("path", path);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const direct = new URL("https://www.thesportsdb.com/api/v1/json/3/" + path);
+  Object.entries(params).forEach(([k, v]) => direct.searchParams.set(k, v));
+  return apiFetch(url, direct);
+}
+
+// ---- API pública de FIFA (gratis: alineaciones completas, minuto a minuto) ----
+const FIFA_COMP = "17"; // FIFA World Cup
+const FIFA_SEASON = "285023"; // edición 2026
+const loc = (arr) => (arr && arr[0] && arr[0].Description) || "";
+
+async function fifaApi(path, params = {}) {
+  const url = new URL("/api/fifa", window.location.origin);
+  url.searchParams.set("path", path);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const direct = new URL("https://api.fifa.com/api/v3/" + path);
+  Object.entries(params).forEach(([k, v]) => direct.searchParams.set(k, v));
+  direct.searchParams.set("language", "es");
+  return apiFetch(url, direct);
+}
+
+// Calendario FIFA (una sola vez por sesión) para cruzar sus partidos con
+// los de TheSportsDB por fecha y nombres de equipos.
+let fifaCalPromise = null;
+function fifaCalendar() {
+  if (!fifaCalPromise) {
+    fifaCalPromise = fifaApi("calendar/matches", {
+      idCompetition: FIFA_COMP,
+      idSeason: FIFA_SEASON,
+      count: "500",
+    })
+      .then((d) =>
+        (d.Results || []).map((m) => ({
+          id: m.IdMatch,
+          stage: m.IdStage,
+          ts: Date.parse(m.Date),
+          home: loc(m.Home && m.Home.TeamName),
+          away: loc(m.Away && m.Away.TeamName),
+        }))
+      )
+      .catch((e) => {
+        fifaCalPromise = null; // permitir reintentar
+        throw e;
+      });
+  }
+  return fifaCalPromise;
+}
+
+// Cuántas palabras comparten dos nombres ("Corea del Sur" ~ "República de Corea").
+const normTxt = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, ""); // sin acentos
+function nameScore(a, b) {
+  const tb = new Set(normTxt(b).split(/[^a-z]+/).filter((w) => w.length >= 3));
+  return normTxt(a).split(/[^a-z]+/).filter((w) => w.length >= 3 && tb.has(w)).length;
+}
+
+// Partido FIFA equivalente a un evento de TheSportsDB (misma hora + nombres).
+async function findFifaMatch(ev) {
+  const d = matchDate(ev);
+  if (!d) return null;
+  const cal = await fifaCalendar();
+  const cerca = cal.filter((m) => Math.abs(m.ts - d.getTime()) < 3 * 3600000);
+  if (cerca.length === 1) return cerca[0];
+  const h = teamName(ev.strHomeTeam);
+  const a = teamName(ev.strAwayTeam);
+  let best = null;
+  let bestScore = 0;
+  for (const m of cerca) {
+    const s = nameScore(h, m.home) + nameScore(a, m.away);
+    if (s > bestScore) {
+      best = m;
+      bestScore = s;
+    }
+  }
+  return best;
 }
 
 // ---- Grupos ----
@@ -418,7 +497,27 @@ const POS_ES = [
 
 const teamCache = {};
 
-async function fetchTeam(esName) {
+// Plantel completo (26 jugadores con foto, DT) desde la API de FIFA: se toma
+// del partido más reciente del equipo en el Mundial. Si el equipo aún no
+// debuta, FIFA no publica la lista y se usa TheSportsDB como respaldo.
+async function fifaSquad(esName) {
+  const cal = await fifaCalendar();
+  const mios = cal.filter((m) => nameScore(esName, m.home) + nameScore(esName, m.away) >= 1);
+  if (!mios.length) return null;
+  mios.sort((x, y) => x.ts - y.ts);
+  const jugados = mios.filter((m) => m.ts <= Date.now());
+  const pick = jugados[jugados.length - 1] || mios[0];
+  const detail = await fifaApi(`live/football/${FIFA_COMP}/${FIFA_SEASON}/${pick.stage}/${pick.id}`);
+  if (!detail || !detail.HomeTeam) return null;
+  const side =
+    nameScore(esName, loc(detail.HomeTeam.TeamName)) >= nameScore(esName, loc(detail.AwayTeam.TeamName))
+      ? detail.HomeTeam
+      : detail.AwayTeam;
+  if (!side || !(side.Players || []).length) return null;
+  return side;
+}
+
+async function fetchTeamTSDB(esName) {
   const en = TEAM_EN[esName] || esName;
   const found = await api("searchteams.php", { t: en });
   const soccer = (found.teams || []).filter((t) => t.strSport === "Soccer");
@@ -430,6 +529,15 @@ async function fetchTeam(esName) {
     api("eventslast.php", { id: team.idTeam }).catch(() => ({})),
   ]);
   return { team, players: pl.player || [], last: last.results || [] };
+}
+
+async function fetchTeam(esName) {
+  const [tsdb, squad] = await Promise.all([
+    fetchTeamTSDB(esName).catch(() => null),
+    fifaSquad(esName).catch(() => null),
+  ]);
+  if (!tsdb && !squad) throw new Error("No se encontraron datos de esta selección.");
+  return { tsdb, squad };
 }
 
 function playerCard(p) {
@@ -459,11 +567,28 @@ function lastMatchRow(r, idTeam) {
 }
 
 function renderTeam(esName, data) {
-  const { team, players, last } = data;
+  const { tsdb, squad } = data;
+  const team = (tsdb && tsdb.team) || {};
+  const last = (tsdb && tsdb.last) || [];
   const localTeam = GROUPS.flatMap((g) => g.teams).find((t) => t.name === esName);
   const crest = team.strBadge || (localTeam ? localTeam.img : "");
+
+  // Jugadores: plantel FIFA completo si existe; si no, lo de TheSportsDB.
+  const FIFA_POS = ["Goalkeeper", "Defender", "Midfield", "Forward"];
+  const players = squad
+    ? (squad.Players || []).map((p) => ({
+        strPlayer: loc(p.PlayerName) + (p.Captain ? " (C)" : ""),
+        strCutout: (p.PlayerPicture && p.PlayerPicture.PictureUrl) || "",
+        strNumber: p.ShirtNumber != null ? String(p.ShirtNumber) : "",
+        strPosition: FIFA_POS[p.Position] || "",
+        strTeam: esName,
+      }))
+    : (tsdb && tsdb.players) || [];
+
+  const fifaCoach = squad && ((squad.Coaches || []).find((c) => c.Role === 1) || (squad.Coaches || [])[0]);
   const coach = players.find((p) => posGroup(p.strPosition) === "dt");
-  const coachName = (coach && coach.strPlayer) || team.strManager || "";
+  const coachName =
+    (fifaCoach && loc(fifaCoach.Name)) || (coach && coach.strPlayer) || team.strManager || "";
   const desc = team.strDescriptionES || team.strDescriptionEN || "";
   const descCorta = desc.length > 420 ? desc.slice(0, 420).trimEnd() + "…" : desc;
 
@@ -544,7 +669,24 @@ async function fetchMatch(id) {
     api("lookupeventstats.php", { id }).then((d) => d.eventstats || []).catch(() => []),
   ]);
   if (!ev) throw new Error("No se pudo cargar el detalle del partido.");
-  return { ev, lineup, timeline, stats };
+
+  // Detalle completo y gratuito desde la API de FIFA (alineaciones de 26,
+  // táctica, técnico, árbitro y minuto a minuto en español). Si falla,
+  // se usa lo de TheSportsDB como respaldo.
+  let fifa = null;
+  try {
+    const fm = await findFifaMatch(ev);
+    if (fm) {
+      const [detail, events] = await Promise.all([
+        fifaApi(`live/football/${FIFA_COMP}/${FIFA_SEASON}/${fm.stage}/${fm.id}`),
+        fifaApi(`timelines/${FIFA_COMP}/${FIFA_SEASON}/${fm.stage}/${fm.id}`)
+          .then((d) => d.Event || [])
+          .catch(() => []),
+      ]);
+      if (detail && detail.HomeTeam) fifa = { detail, events };
+    }
+  } catch {}
+  return { ev, lineup, timeline, stats, fifa };
 }
 
 function lineupCol(lista, titulo) {
@@ -562,6 +704,55 @@ function lineupCol(lista, titulo) {
         )
         .join("")}
     </div>`;
+}
+
+// Columna de alineación con datos FIFA (titulares, banca, táctica y DT).
+function fifaLineupCol(team) {
+  const tit = (team.Players || []).filter((p) => p.Status === 1);
+  const sup = (team.Players || []).filter((p) => p.Status !== 1);
+  const coach = (team.Coaches || []).find((c) => c.Role === 1) || (team.Coaches || [])[0];
+  const row = (p) => `<div class="lu-row">
+      <span class="lu-num">${p.ShirtNumber ?? ""}</span>
+      <span class="lu-name">${loc(p.PlayerName)}${p.Captain ? " <b>(C)</b>" : ""}</span>
+    </div>`;
+  return `<div class="lu-col">
+    <h4>${loc(team.TeamName)}${team.Tactics ? ` · ${team.Tactics}` : ""}</h4>
+    ${coach ? `<p class="lu-dt">DT: <b>${loc(coach.Name)}</b></p>` : ""}
+    ${tit.map(row).join("")}
+    ${sup.length ? `<p class="lu-banca">Banca</p>${sup.map(row).join("")}` : ""}
+  </div>`;
+}
+
+// Momentos con datos FIFA (descripciones ya en español).
+const FIFA_EV_ICON = { 0: "⚽", 2: "🟨", 3: "🟥", 5: "🔁", 71: "📺" };
+
+// Estadísticas contadas desde el minuto a minuto de FIFA (útil sobre todo
+// en vivo, cuando TheSportsDB todavía no publica las suyas).
+const FIFA_STAT_TYPES = [
+  [12, "Remates a puerta"],
+  [57, "Atajadas"],
+  [16, "Tiros de esquina"],
+  [18, "Faltas"],
+  [15, "Fueras de juego"],
+  [2, "Tarjetas amarillas"],
+  [3, "Tarjetas rojas"],
+];
+function fifaStats(events, idHome) {
+  if (!events || !events.length || !idHome) return [];
+  return FIFA_STAT_TYPES.map(([type, label]) => {
+    const delTipo = events.filter((t) => t.Type === type);
+    if (!delTipo.length) return null;
+    const h = delTipo.filter((t) => t.IdTeam === idHome).length;
+    return { strStat: label, intHome: h, intAway: delTipo.length - h };
+  }).filter(Boolean);
+}
+function fifaMomentoRow(t, idHome) {
+  const desc = loc(t.EventDescription) || loc(t.TypeLocalized);
+  return `<div class="tl-row ${t.IdTeam === idHome ? "is-home" : "is-away"}">
+    <span class="tl-min">${t.MatchMinute || ""}</span>
+    <span class="tl-ico">${FIFA_EV_ICON[t.Type] || "•"}</span>
+    <span class="tl-txt">${desc}${t.Type === 0 ? ` <b>(${t.HomeGoals}-${t.AwayGoals})</b>` : ""}</span>
+  </div>`;
 }
 
 function statBar(s) {
@@ -582,27 +773,64 @@ function statBar(s) {
 }
 
 function renderMatch(data) {
-  const { ev, lineup, timeline, stats } = data;
+  const { ev, lineup, timeline, stats, fifa } = data;
+  const fifaDetail = fifa && fifa.detail;
   const estado = matchState(ev);
   const d = matchDate(ev);
+  const minuto = ev.strProgress ? `${ev.strProgress}'` : (fifaDetail && fifaDetail.MatchTime) || "";
   const centro =
     estado === "prog"
       ? `<span class="mm-time">${d ? fmtHoraLocal(d) : "vs"}</span>`
       : `<span class="mm-score">${ev.intHomeScore ?? "·"} - ${ev.intAwayScore ?? "·"}</span>`;
   const estadoTxt =
     estado === "live"
-      ? `<span class="mc__live">● En vivo${ev.strProgress ? ` ${ev.strProgress}'` : ""}</span>`
+      ? `<span class="mc__live">● En vivo${minuto ? ` ${minuto}` : ""}</span>`
       : estado === "fin"
         ? `<span class="mc__ft">Final</span>`
         : d
           ? `<span class="mm-date">${fmtFechaLocal(d)}</span>`
           : "";
 
-  const titularesH = lineup.filter((p) => p.strHome === "Yes" && p.strSubstitute !== "Yes");
-  const titularesA = lineup.filter((p) => p.strHome !== "Yes" && p.strSubstitute !== "Yes");
-  const momentos = timeline.filter((t) =>
+  // Metadatos: sede, ronda, asistencia y árbitro (FIFA).
+  const arbitro = fifaDetail && (fifaDetail.Officials || []).find((o) => o.OfficialType === 1);
+  const meta = [
+    ev.strVenue ? `📍 ${ev.strVenue}` : "",
+    ev.strRound ? `Jornada/ronda ${ev.strRound}` : "",
+    ev.intSpectators ? `👥 ${Number(ev.intSpectators).toLocaleString("es")} espectadores` : "",
+    arbitro ? `🟡 Árbitro: ${loc(arbitro.Name)}` : "",
+  ].filter(Boolean).join(" · ");
+
+  // Momentos: FIFA (completos y en español) o TheSportsDB como respaldo.
+  const idHome = fifaDetail && fifaDetail.HomeTeam ? fifaDetail.HomeTeam.IdTeam : null;
+  const fifaMomentos = ((fifa && fifa.events) || []).filter((t) => t.Type in FIFA_EV_ICON);
+  const tsdbMomentos = timeline.filter((t) =>
     ["goal", "card", "subst", "var"].includes((t.strTimeline || "").toLowerCase())
   );
+  const momentosHTML = fifaMomentos.length
+    ? `<div class="tl-list">${fifaMomentos.map((t) => fifaMomentoRow(t, idHome)).join("")}</div>`
+    : tsdbMomentos.length
+      ? `<div class="tl-list">${tsdbMomentos
+          .map(
+            (t) => `<div class="tl-row ${t.strHome === "Yes" ? "is-home" : "is-away"}">
+              <span class="tl-min">${t.intTime != null ? t.intTime + "'" : ""}</span>
+              <span class="tl-ico">${timelineIcon(t)}</span>
+              <span class="tl-txt"><b>${t.strPlayer || ""}</b>${t.strAssist ? ` (asist. ${t.strAssist})` : ""} · ${teamName(t.strTeam)}</span>
+            </div>`
+          )
+          .join("")}</div>`
+      : "";
+
+  // Alineaciones: FIFA (26 jugadores, táctica, DT) o TheSportsDB como respaldo.
+  const fifaTieneAlineacion =
+    fifaDetail && ((fifaDetail.HomeTeam.Players || []).length || (fifaDetail.AwayTeam.Players || []).length);
+  const alineacionesHTML = fifaTieneAlineacion
+    ? `<div class="lu-grid">${fifaLineupCol(fifaDetail.HomeTeam)}${fifaLineupCol(fifaDetail.AwayTeam)}</div>`
+    : lineup.length
+      ? `<div class="lu-grid">
+           ${lineupCol(lineup.filter((p) => p.strHome === "Yes"), teamName(ev.strHomeTeam))}
+           ${lineupCol(lineup.filter((p) => p.strHome !== "Yes"), teamName(ev.strAwayTeam))}
+         </div>`
+      : `<p class="placeholder">Las alineaciones aún no se publican. Suelen aparecer cerca de la hora del partido.</p>`;
 
   $matchContent.innerHTML = `
     <div class="mm-head">
@@ -617,34 +845,19 @@ function renderMatch(data) {
       </div>
     </div>
     <div class="modal-pad">
-      <p class="mm-meta">${[ev.strVenue ? `📍 ${ev.strVenue}` : "", ev.strRound ? `Jornada/ronda ${ev.strRound}` : "", ev.intSpectators ? `👥 ${Number(ev.intSpectators).toLocaleString("es")} espectadores` : ""].filter(Boolean).join(" · ")}</p>
+      <p class="mm-meta">${meta}</p>
 
-      ${momentos.length
-        ? `<h3 class="tm-sub">Momentos del partido</h3>
-           <div class="tl-list">${momentos
-             .map(
-               (t) => `<div class="tl-row ${t.strHome === "Yes" ? "is-home" : "is-away"}">
-                 <span class="tl-min">${t.intTime != null ? t.intTime + "'" : ""}</span>
-                 <span class="tl-ico">${timelineIcon(t)}</span>
-                 <span class="tl-txt"><b>${t.strPlayer || ""}</b>${t.strAssist ? ` (asist. ${t.strAssist})` : ""} · ${teamName(t.strTeam)}</span>
-               </div>`
-             )
-             .join("")}</div>`
-        : ""}
+      ${momentosHTML ? `<h3 class="tm-sub">Momentos del partido</h3>${momentosHTML}` : ""}
 
       <h3 class="tm-sub">Alineaciones</h3>
-      ${titularesH.length || titularesA.length
-        ? `<div class="lu-grid">
-             ${lineupCol(lineup.filter((p) => p.strHome === "Yes"), teamName(ev.strHomeTeam))}
-             ${lineupCol(lineup.filter((p) => p.strHome !== "Yes"), teamName(ev.strAwayTeam))}
-           </div>`
-        : `<p class="placeholder">La API aún no publica las alineaciones de este partido. Suelen aparecer cerca de la hora del partido.</p>`}
+      ${alineacionesHTML}
 
-      ${stats.length
-        ? `<h3 class="tm-sub">Estadísticas</h3><div class="stats-list">${stats.map(statBar).join("")}</div>`
-        : estado !== "prog"
-          ? `<p class="placeholder">Aún no hay estadísticas disponibles.</p>`
-          : ""}
+      ${(() => {
+        const statsArr = stats.length ? stats : fifaStats(fifa && fifa.events, idHome);
+        if (statsArr.length)
+          return `<h3 class="tm-sub">Estadísticas</h3><div class="stats-list">${statsArr.map(statBar).join("")}</div>`;
+        return estado !== "prog" ? `<p class="placeholder">Aún no hay estadísticas disponibles.</p>` : "";
+      })()}
     </div>`;
 }
 

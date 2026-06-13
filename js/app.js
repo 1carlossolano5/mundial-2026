@@ -23,6 +23,8 @@ function showSection(name) {
   if (name === "estadios" && !estadiosCargados) loadStadiums();
   if (name === "calendario" && !calendarioCargado) loadCalendar();
 
+  if (name === "goleadores" && !goleadoresCargado) loadScorers();
+
   // Resultados en vivo: refrescar el calendario solo mientras se está viendo.
   if (name === "calendario") startCalRefresh();
   else stopCalRefresh();
@@ -123,6 +125,7 @@ function fifaCalendar() {
           away: loc(m.Away && m.Away.TeamName),
           homeId: m.Home && m.Home.IdTeam,
           awayId: m.Away && m.Away.IdTeam,
+          goals: (Number(m.Home && m.Home.Score) || 0) + (Number(m.Away && m.Away.Score) || 0),
         }))
       )
       .catch((e) => {
@@ -179,6 +182,142 @@ async function fifaTeamId(esName) {
     }
   }
   return bestId;
+}
+
+// Nombres FIFA que no comparten palabras con los de GROUPS (no se emparejan
+// por tokens). Clave normalizada (sin acentos/minúsculas) → nombre en GROUPS.
+const FIFA_TEAM_ALIAS = { "ee uu": "Estados Unidos" };
+
+// Equipo de GROUPS equivalente a un nombre FIFA (por alias o por palabras).
+function groupTeamForFifa(fifaName) {
+  const all = GROUPS.flatMap((g) => g.teams);
+  const clave = normTxt(fifaName).replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
+  const alias = FIFA_TEAM_ALIAS[clave];
+  if (alias) return all.find((t) => t.name === alias) || null;
+  return all.find((t) => nameScore(fifaName, t.name) >= 1) || null;
+}
+
+// IdTeam de FIFA → bandera/escudo/nombre (cruzando el calendario con los datos
+// estáticos de GROUPS) para mostrar de qué selección es cada goleador.
+let fifaTeamMetaPromise = null;
+function fifaTeamMeta() {
+  if (!fifaTeamMetaPromise) {
+    fifaTeamMetaPromise = fifaCalendar().then((cal) => {
+      const map = {};
+      for (const m of cal) {
+        for (const [id, fifaName] of [[m.homeId, m.home], [m.awayId, m.away]]) {
+          if (!id || map[id]) continue;
+          const gt = groupTeamForFifa(fifaName);
+          map[id] = gt
+            ? { name: gt.name, flag: gt.flag, crest: gt.img }
+            : { name: fifaName, flag: "", crest: "" };
+        }
+      }
+      return map;
+    });
+  }
+  return fifaTeamMetaPromise;
+}
+
+// Ejecuta fn sobre items con un límite de concurrencia (no saturar la API).
+async function poolMap(items, limit, fn) {
+  const results = [];
+  let i = 0;
+  async function worker() {
+    while (i < items.length) {
+      const idx = i++;
+      results[idx] = await fn(items[idx], idx);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
+}
+
+// Nombre del goleador desde la descripción ("¡Goool de Julian QUINONES (México)!").
+function scorerName(desc) {
+  if (!desc) return null;
+  let s = desc.replace(/\s*\([^()]*\)\s*!?\.?$/, "").trim(); // quita "(País)!" final
+  const idx = s.toLowerCase().lastIndexOf(" de ");
+  if (idx !== -1) s = s.slice(idx + 4); // se queda con lo posterior al último " de "
+  return s.trim() || null;
+}
+
+// ---- Goleadores (calculados del minuto a minuto, FIFA no da endpoint útil) ----
+let goleadoresCargado = false;
+const $golList = document.getElementById("golList");
+const $golStatus = document.getElementById("golStatus");
+const golTimelineCache = {};
+
+function timelineForMatch(m) {
+  if (!golTimelineCache[m.id]) {
+    golTimelineCache[m.id] = fifaApi(`timelines/${FIFA_COMP}/${FIFA_SEASON}/${m.stage}/${m.id}`)
+      .then((d) => d.Event || [])
+      .catch(() => []);
+  }
+  return golTimelineCache[m.id];
+}
+
+async function loadScorers() {
+  goleadoresCargado = true;
+  $golStatus.hidden = false;
+  $golList.innerHTML = "";
+  try {
+    const [cal, meta] = await Promise.all([fifaCalendar(), fifaTeamMeta()]);
+    // Solo partidos con goles (evita pedir timelines de 0-0 o no jugados).
+    const conGoles = cal.filter((m) => m.goals > 0);
+    const listas = await poolMap(conGoles, 6, timelineForMatch);
+
+    const tally = {}; // IdPlayer → { goles, asist, name, idTeam }
+    listas.forEach((events) => {
+      (events || []).forEach((e) => {
+        if (e.Type !== 0 && e.Type !== 1) return; // 0 = gol, 1 = asistencia
+        const key = e.IdPlayer || "d:" + loc(e.EventDescription);
+        const t =
+          tally[key] ||
+          (tally[key] = { goles: 0, asist: 0, name: scorerName(loc(e.EventDescription)), idTeam: e.IdTeam });
+        if (e.Type === 0) t.goles++;
+        else t.asist++;
+        if (!t.name) t.name = scorerName(loc(e.EventDescription));
+      });
+    });
+
+    const rows = Object.values(tally)
+      .filter((t) => t.goles > 0)
+      .sort(
+        (a, b) =>
+          b.goles - a.goles || b.asist - a.asist || (a.name || "").localeCompare(b.name || "")
+      );
+
+    $golStatus.hidden = true;
+    if (!rows.length) {
+      $golList.innerHTML = `<p class="placeholder">Todavía no hay goles registrados. La tabla se llenará a medida que se jueguen los partidos.</p>`;
+      return;
+    }
+
+    let pos = 0;
+    let prevG = null;
+    $golList.innerHTML =
+      `<div class="scorer-row scorer-row--head"><span>#</span><span>Jugador</span><span title="Goles">G</span><span title="Asistencias">A</span></div>` +
+      rows
+        .map((t, i) => {
+          if (t.goles !== prevG) {
+            pos = i + 1;
+            prevG = t.goles;
+          }
+          const tm = meta[t.idTeam] || {};
+          return `<div class="scorer-row">
+            <span class="scorer-pos">${pos}</span>
+            <span class="scorer-name">${tm.flag ? tm.flag + " " : ""}${t.name || "—"}<small>${tm.name || ""}</small></span>
+            <span class="scorer-g">${t.goles}</span>
+            <span class="scorer-a">${t.asist}</span>
+          </div>`;
+        })
+        .join("");
+  } catch (err) {
+    $golStatus.hidden = true;
+    goleadoresCargado = false; // permitir reintentar al volver a entrar
+    $golList.innerHTML = `<p class="placeholder">${err.message}</p>`;
+  }
 }
 
 // ---- Grupos ----
@@ -747,6 +886,63 @@ function fifaLineupCol(team) {
   </div>`;
 }
 
+// ---- Formación dibujada en la cancha (a partir del string de táctica) ----
+// FIFA no entrega coordenadas (LineupX/Y vienen vacías), pero sí la táctica
+// ("4-1-2-3") y los titulares EN ORDEN de formación, así que ubicamos por filas.
+function parseTactics(str, nOutfield) {
+  const rows = String(str || "").split("-").map(Number).filter((n) => n > 0);
+  const suma = rows.reduce((a, b) => a + b, 0);
+  return rows.length && suma === nOutfield ? rows : null;
+}
+function sliceRows(arr, sizes) {
+  const out = [];
+  let i = 0;
+  for (const s of sizes) {
+    out.push(arr.slice(i, i + s));
+    i += s;
+  }
+  return out;
+}
+// Asigna _x/_y (en %) a los 11 titulares de un equipo según su lado del campo.
+function placeTeam(team, side) {
+  const starters = (team.Players || []).filter((p) => p.Status === 1);
+  if (starters.length < 11) return null;
+  const gk = starters[0];
+  const outfield = starters.slice(1);
+  const rows = parseTactics(team.Tactics, outfield.length);
+  const cols = rows ? [[gk], ...sliceRows(outfield, rows)] : [[gk], outfield];
+  const n = cols.length;
+  cols.forEach((col, ci) => {
+    const frac = n > 1 ? ci / (n - 1) : 0; // 0 = arquero (atrás) → 1 = delanteros (centro)
+    const xHome = 5 + frac * 41;
+    const x = side === "home" ? xHome : 100 - xHome;
+    col.forEach((p, pi) => {
+      p._x = x;
+      p._y = (100 / (col.length + 1)) * (pi + 1);
+    });
+  });
+  return cols.flat();
+}
+function pitchDot(p, side) {
+  const apellido = (loc(p.PlayerName) || "").trim().split(/\s+/).pop() || "";
+  return `<div class="pitch-dot pitch-dot--${side}" style="left:${p._x}%;top:${p._y}%">
+    <span class="pitch-num">${p.ShirtNumber ?? ""}</span>
+    <span class="pitch-name">${apellido}${p.Captain ? " (C)" : ""}</span>
+  </div>`;
+}
+function fifaPitch(home, away) {
+  const ph = placeTeam(home, "home");
+  const pa = placeTeam(away, "away");
+  if (!ph || !pa) return "";
+  return `<div class="pitch" role="img" aria-label="Formaciones: ${loc(home.TeamName)} ${home.Tactics || ""} vs ${loc(away.TeamName)} ${away.Tactics || ""}">
+    <div class="pitch-mid"></div><div class="pitch-circle"></div>
+    <span class="pitch-tac pitch-tac--home">${home.Tactics || ""}</span>
+    <span class="pitch-tac pitch-tac--away">${away.Tactics || ""}</span>
+    ${ph.map((p) => pitchDot(p, "home")).join("")}
+    ${pa.map((p) => pitchDot(p, "away")).join("")}
+  </div>`;
+}
+
 // Momentos con datos FIFA (descripciones ya en español).
 const FIFA_EV_ICON = { 0: "⚽", 2: "🟨", 3: "🟥", 5: "🔁", 71: "📺" };
 
@@ -874,6 +1070,7 @@ function renderMatch(data) {
       ${momentosHTML ? `<h3 class="tm-sub">Momentos del partido</h3>${momentosHTML}` : ""}
 
       <h3 class="tm-sub">Alineaciones</h3>
+      ${fifaTieneAlineacion ? fifaPitch(fifaDetail.HomeTeam, fifaDetail.AwayTeam) : ""}
       ${alineacionesHTML}
 
       ${(() => {
@@ -887,7 +1084,9 @@ function renderMatch(data) {
 
 const matchCache = {};
 
+let matchReqId = 0;
 async function openMatch(id) {
+  const myReq = ++matchReqId;
   openModal($matchModal);
   $matchContent.innerHTML = spinnerHTML("Cargando partido...");
   try {
@@ -897,8 +1096,9 @@ async function openMatch(id) {
       data = await fetchMatch(id);
       if (matchState(data.ev) === "fin") matchCache[id] = data;
     }
+    if (myReq !== matchReqId) return; // se abrió otro partido después
     renderMatch(data);
   } catch (err) {
-    $matchContent.innerHTML = modalError(err.message);
+    if (myReq === matchReqId) $matchContent.innerHTML = modalError(err.message);
   }
 }

@@ -308,6 +308,27 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
 .mc__ft { font-size: 0.62rem; color: var(--green); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
 .mc__venue { grid-column: 1 / -1; text-align: center; color: var(--ink-2); font-size: 0.78rem; border-top: 1px solid var(--line); padding-top: 8px; margin-top: 4px; }
 
+/* ===== Goleadores ===== */
+.scorers { max-width: 640px; }
+.scorer-row {
+  display: grid; grid-template-columns: 38px 1fr 38px 38px; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 11px 16px; margin-bottom: 8px; font-variant-numeric: tabular-nums;
+  animation: cardIn 0.4s both;
+}
+.scorer-row--head {
+  background: transparent; border: none; box-shadow: none; padding: 0 16px 4px;
+  margin-bottom: 4px; animation: none;
+}
+.scorer-row--head span { font-size: 0.72rem; font-weight: 800; color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.5px; }
+.scorer-row--head span:nth-child(n+3), .scorer-g, .scorer-a, .scorer-pos { text-align: center; }
+.scorer-pos { font-family: var(--font-head); font-weight: 900; color: var(--ink-2); text-align: center; }
+.scorer-row:nth-child(2) .scorer-pos { color: var(--orange); }
+.scorer-name { font-weight: 700; display: flex; flex-direction: column; line-height: 1.2; overflow: hidden; }
+.scorer-name small { font-weight: 500; color: var(--ink-2); font-size: 0.74rem; }
+.scorer-g { font-family: var(--font-head); font-weight: 900; font-size: 1.15rem; color: var(--green); text-align: center; }
+.scorer-a { font-weight: 700; color: var(--ink-2); text-align: center; }
+
 /* ===== Botones ===== */
 .btn {
   display: inline-flex; align-items: center; gap: 12px;
@@ -518,6 +539,31 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
 .tl-min { font-family: var(--font-head); font-weight: 900; color: var(--ink-2); min-width: 30px; font-variant-numeric: tabular-nums; }
 .tl-row.is-away .tl-min { text-align: left; }
 .tl-txt b { font-weight: 800; }
+/* Cancha con la formación de ambos equipos */
+.pitch {
+  position: relative; width: 100%; aspect-ratio: 16 / 10; margin: 4px 0 18px;
+  border-radius: 14px; overflow: hidden;
+  background:
+    repeating-linear-gradient(90deg, #1f9d54 0 9.09%, #1c9350 9.09% 18.18%);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+.pitch-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background: rgba(255, 255, 255, 0.5); transform: translateX(-50%); }
+.pitch-circle { position: absolute; left: 50%; top: 50%; width: 22%; aspect-ratio: 1; border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 50%; transform: translate(-50%, -50%); }
+.pitch-tac { position: absolute; top: 8px; font-family: var(--font-head); font-weight: 900; font-size: 0.8rem; color: rgba(255, 255, 255, 0.9); letter-spacing: 1px; }
+.pitch-tac--home { left: 12px; }
+.pitch-tac--away { right: 12px; }
+.pitch-dot { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; width: 64px; }
+.pitch-num {
+  width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; font-family: var(--font-head); font-weight: 900; font-size: 0.8rem; color: #fff;
+  border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4); font-variant-numeric: tabular-nums;
+}
+.pitch-dot--home .pitch-num { background: var(--blue); }
+.pitch-dot--away .pitch-num { background: var(--red); }
+.pitch-name {
+  font-size: 0.62rem; font-weight: 700; color: #fff; text-align: center; line-height: 1.1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .lu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .lu-col h4 { font-family: var(--font-head); font-size: 0.86rem; margin-bottom: 8px; }
 .lu-dt { font-size: 0.76rem; color: var(--ink-2); margin-bottom: 8px; }
@@ -603,5 +649,10 @@ button, a, .nav__btn, .btn, .sim-team, .bracket-team, .third-card, .stadium-card
   .mm-score { font-size: 1.9rem; }
   .lu-grid { grid-template-columns: 1fr; }
   .players-grid { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+  /* Cancha compacta: solo dorsales (los nombres están en la lista de abajo) */
+  .pitch { aspect-ratio: 4 / 5; }
+  .pitch-dot { width: 30px; }
+  .pitch-name { display: none; }
+  .pitch-num { width: 22px; height: 22px; font-size: 0.7rem; }
   .last-row__meta { margin-left: 36px; width: 100%; }
 }

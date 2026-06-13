@@ -36,11 +36,14 @@
     <main class="main">
       <!-- INICIO -->
       <section class="view is-active" id="inicio">
-        <div class="hero hero--cinematic">
-          <video class="hero__video" autoplay loop muted playsinline aria-hidden="true">
-            <source src="https://res.cloudinary.com/dfonotyfb/video/upload/v1775585556/dds3_1_rqhg7x.mp4" type="video/mp4" />
-          </video>
-          <div class="hero__scrim" aria-hidden="true"></div>
+        <div class="hero">
+          <div class="hero__blocks" aria-hidden="true">
+            <span class="hb hb--red"></span>
+            <span class="hb hb--green"></span>
+            <span class="hb hb--blue"></span>
+            <span class="hb hb--orange"></span>
+          </div>
+          <div class="hero__photo" aria-hidden="true"></div>
           <div class="hero__content">
             <span class="hero__kicker">Estados Unidos · México · Canadá</span>
             <h1 class="hero__title">Copa<br />Mundial<br /><span>2026</span></h1>
@@ -51,7 +54,10 @@
               <span class="btn__icon" aria-hidden="true">→</span>
             </a>
           </div>
-          <div class="hero__scroll" aria-hidden="true"><span></span></div>
+          <div class="hero__visual" aria-hidden="true">
+            <img class="hero__logo-img" src="img/logo2026.png" alt="Logo FIFA Mundial 26" onload="this.nextElementSibling.style.display='none'" onerror="this.remove()" />
+            <div class="hero__logo-fallback">26</div>
+          </div>
         </div>
         <div class="ticker" id="ticker" aria-hidden="true"><div class="ticker__track" id="tickerTrack"></div></div>
       </section>

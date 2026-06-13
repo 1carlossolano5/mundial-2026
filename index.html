@@ -23,7 +23,7 @@
         <button class="nav__btn" data-section="grupos"><b>02</b> Grupos</button>
         <button class="nav__btn" data-section="estadios"><b>03</b> Estadios</button>
         <button class="nav__btn" data-section="calendario"><b>04</b> Calendario</button>
-        <button class="nav__btn" data-section="goleadores"><b>05</b> Goleadores</button>
+        <button class="nav__btn" data-section="goleadores"><b>05</b> Líderes</button>
         <button class="nav__btn" data-section="simulador"><b>06</b> Simulador</button>
       </nav>
       <div class="sidebar__foot">
@@ -87,9 +87,10 @@
 
       <!-- GOLEADORES -->
       <section class="view" id="goleadores">
-        <h2 class="view__title">Goleadores</h2>
-        <p class="view__intro">Tabla de máximos goleadores del Mundial, calculada a partir de los goles de cada partido jugado. Se actualiza a medida que avanza el torneo.</p>
-        <div class="status" id="golStatus" hidden><div class="spinner"></div><p>Calculando goleadores...</p></div>
+        <h2 class="view__title">Líderes</h2>
+        <p class="view__intro">Goleadores, asistidores y tarjetas del Mundial, calculados a partir de cada partido jugado. Se actualizan a medida que avanza el torneo.</p>
+        <div class="gol-tabs" id="golTabs" role="tablist"></div>
+        <div class="status" id="golStatus" hidden><div class="spinner"></div><p>Calculando...</p></div>
         <div class="scorers" id="golList"></div>
       </section>
 

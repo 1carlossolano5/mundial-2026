@@ -233,20 +233,51 @@ async function poolMap(items, limit, fn) {
   return results;
 }
 
-// Nombre del goleador desde la descripción ("¡Goool de Julian QUINONES (México)!").
-function scorerName(desc) {
+// Nombre del jugador desde la descripción de un evento. Funciona para goles
+// y asistencias ("...de X (País)"), tarjetas amarillas ("amonesta a X (País)")
+// y rojas ("expulsión de X (País)"): toma lo que sigue al último " de " o " a ".
+function playerFromDesc(desc) {
   if (!desc) return null;
-  let s = desc.replace(/\s*\([^()]*\)\s*!?\.?$/, "").trim(); // quita "(País)!" final
-  const idx = s.toLowerCase().lastIndexOf(" de ");
-  if (idx !== -1) s = s.slice(idx + 4); // se queda con lo posterior al último " de "
-  return s.trim() || null;
+  let s = desc.replace(/\s*\([^()]*\)\s*[!.]*$/, "").trim(); // quita "(País)!" final
+  const ide = s.toLowerCase().lastIndexOf(" de ");
+  const ia = s.toLowerCase().lastIndexOf(" a ");
+  if (ide >= 0 && ide >= ia) s = s.slice(ide + 4);
+  else if (ia >= 0) s = s.slice(ia + 3);
+  s = s.replace(/^[¡!.\s]+|[!.\s]+$/g, "").trim(); // limpia signos sobrantes
+  return s || null;
 }
 
-// ---- Goleadores (calculados del minuto a minuto, FIFA no da endpoint útil) ----
+// ---- Líderes: goleadores, asistidores y tarjetas ----
+// (Calculados del minuto a minuto; FIFA no expone un endpoint útil de rankings.)
 let goleadoresCargado = false;
+let golTally = null; // tally cacheado para cambiar de pestaña sin recalcular
+let golTab = "goles";
 const $golList = document.getElementById("golList");
 const $golStatus = document.getElementById("golStatus");
+const $golTabs = document.getElementById("golTabs");
 const golTimelineCache = {};
+
+// Configuración de cada pestaña: columnas, valores, criterio de orden y ranking.
+const GOL_TABS = [
+  {
+    id: "goles", label: "⚽ Goleadores", cols: ["G", "A"],
+    val: (t) => [t.goles, t.asist], rankBy: (t) => t.goles,
+    sort: (a, b) => b.goles - a.goles || b.asist - a.asist,
+    vacio: "Todavía no hay goles registrados.",
+  },
+  {
+    id: "asist", label: "🅰️ Asistidores", cols: ["A", "G"],
+    val: (t) => [t.asist, t.goles], rankBy: (t) => t.asist,
+    sort: (a, b) => b.asist - a.asist || b.goles - a.goles,
+    vacio: "Todavía no hay asistencias registradas.",
+  },
+  {
+    id: "tarjetas", label: "🟨 Tarjetas", cols: ["🟨", "🟥"],
+    val: (t) => [t.amarillas, t.rojas], rankBy: (t) => t.amarillas + t.rojas * 2,
+    sort: (a, b) => b.amarillas + b.rojas * 2 - (a.amarillas + a.rojas * 2) || b.rojas - a.rojas,
+    vacio: "Todavía no hay tarjetas registradas.",
+  },
+];
 
 function timelineForMatch(m) {
   if (!golTimelineCache[m.id]) {
@@ -257,68 +288,95 @@ function timelineForMatch(m) {
   return golTimelineCache[m.id];
 }
 
+// Tipo de evento FIFA → en qué contador suma (0 gol, 1 asist, 2 amarilla, 3 roja).
+const GOL_EV = { 0: "goles", 1: "asist", 2: "amarillas", 3: "rojas" };
+
+function renderGolTabs() {
+  $golTabs.innerHTML = GOL_TABS.map(
+    (t) => `<button class="gol-tab ${t.id === golTab ? "is-active" : ""}" data-tab="${t.id}" role="tab" aria-selected="${t.id === golTab}">${t.label}</button>`
+  ).join("");
+}
+
+function renderGolTable(meta) {
+  const cfg = GOL_TABS.find((t) => t.id === golTab);
+  const rows = Object.values(golTally)
+    .filter((t) => cfg.rankBy(t) > 0)
+    .sort((a, b) => cfg.sort(a, b) || (a.name || "").localeCompare(b.name || ""))
+    .slice(0, 25);
+
+  if (!rows.length) {
+    $golList.innerHTML = `<p class="placeholder">${cfg.vacio} La tabla se llenará a medida que se jueguen los partidos.</p>`;
+    return;
+  }
+  let pos = 0;
+  let prev = null;
+  $golList.dataset.tab = golTab;
+  $golList.innerHTML =
+    `<div class="scorer-row scorer-row--head"><span>#</span><span>Jugador</span><span>${cfg.cols[0]}</span><span>${cfg.cols[1]}</span></div>` +
+    rows
+      .map((t, i) => {
+        const r = cfg.rankBy(t);
+        if (r !== prev) {
+          pos = i + 1;
+          prev = r;
+        }
+        const tm = meta[t.idTeam] || {};
+        const [v1, v2] = cfg.val(t);
+        return `<div class="scorer-row">
+          <span class="scorer-pos">${pos}</span>
+          <span class="scorer-name">${tm.flag ? tm.flag + " " : ""}${t.name || "—"}<small>${tm.name || ""}</small></span>
+          <span class="scorer-g">${v1}</span>
+          <span class="scorer-a">${v2}</span>
+        </div>`;
+      })
+      .join("");
+}
+
+let golMeta = {};
 async function loadScorers() {
   goleadoresCargado = true;
+  renderGolTabs();
   $golStatus.hidden = false;
   $golList.innerHTML = "";
   try {
     const [cal, meta] = await Promise.all([fifaCalendar(), fifaTeamMeta()]);
-    // Solo partidos con goles (evita pedir timelines de 0-0 o no jugados).
-    const conGoles = cal.filter((m) => m.goals > 0);
-    const listas = await poolMap(conGoles, 6, timelineForMatch);
+    golMeta = meta;
+    // Goles, tarjetas y faltas pueden darse en cualquier partido jugado.
+    const jugados = cal.filter((m) => m.ts <= Date.now());
+    const listas = await poolMap(jugados, 6, timelineForMatch);
 
-    const tally = {}; // IdPlayer → { goles, asist, name, idTeam }
+    const tally = {}; // IdPlayer → { goles, asist, amarillas, rojas, name, idTeam }
     listas.forEach((events) => {
       (events || []).forEach((e) => {
-        if (e.Type !== 0 && e.Type !== 1) return; // 0 = gol, 1 = asistencia
+        const campo = GOL_EV[e.Type];
+        if (!campo) return;
         const key = e.IdPlayer || "d:" + loc(e.EventDescription);
         const t =
           tally[key] ||
-          (tally[key] = { goles: 0, asist: 0, name: scorerName(loc(e.EventDescription)), idTeam: e.IdTeam });
-        if (e.Type === 0) t.goles++;
-        else t.asist++;
-        if (!t.name) t.name = scorerName(loc(e.EventDescription));
+          (tally[key] = { goles: 0, asist: 0, amarillas: 0, rojas: 0, name: playerFromDesc(loc(e.EventDescription)), idTeam: e.IdTeam });
+        t[campo]++;
+        if (!t.name) t.name = playerFromDesc(loc(e.EventDescription));
       });
     });
-
-    const rows = Object.values(tally)
-      .filter((t) => t.goles > 0)
-      .sort(
-        (a, b) =>
-          b.goles - a.goles || b.asist - a.asist || (a.name || "").localeCompare(b.name || "")
-      );
+    golTally = tally;
 
     $golStatus.hidden = true;
-    if (!rows.length) {
-      $golList.innerHTML = `<p class="placeholder">Todavía no hay goles registrados. La tabla se llenará a medida que se jueguen los partidos.</p>`;
-      return;
-    }
-
-    let pos = 0;
-    let prevG = null;
-    $golList.innerHTML =
-      `<div class="scorer-row scorer-row--head"><span>#</span><span>Jugador</span><span title="Goles">G</span><span title="Asistencias">A</span></div>` +
-      rows
-        .map((t, i) => {
-          if (t.goles !== prevG) {
-            pos = i + 1;
-            prevG = t.goles;
-          }
-          const tm = meta[t.idTeam] || {};
-          return `<div class="scorer-row">
-            <span class="scorer-pos">${pos}</span>
-            <span class="scorer-name">${tm.flag ? tm.flag + " " : ""}${t.name || "—"}<small>${tm.name || ""}</small></span>
-            <span class="scorer-g">${t.goles}</span>
-            <span class="scorer-a">${t.asist}</span>
-          </div>`;
-        })
-        .join("");
+    renderGolTable(meta);
   } catch (err) {
     $golStatus.hidden = true;
     goleadoresCargado = false; // permitir reintentar al volver a entrar
     $golList.innerHTML = `<p class="placeholder">${err.message}</p>`;
   }
 }
+
+// Cambio de pestaña: re-render instantáneo desde el tally ya calculado.
+$golTabs.addEventListener("click", (e) => {
+  const btn = e.target.closest(".gol-tab");
+  if (!btn || btn.dataset.tab === golTab) return;
+  golTab = btn.dataset.tab;
+  renderGolTabs();
+  if (golTally) renderGolTable(golMeta);
+});
 
 // ---- Grupos ----
 let gruposCargados = false;

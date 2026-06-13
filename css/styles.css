@@ -308,7 +308,16 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
 .mc__ft { font-size: 0.62rem; color: var(--green); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
 .mc__venue { grid-column: 1 / -1; text-align: center; color: var(--ink-2); font-size: 0.78rem; border-top: 1px solid var(--line); padding-top: 8px; margin-top: 4px; }
 
-/* ===== Goleadores ===== */
+/* ===== Líderes (goleadores / asistidores / tarjetas) ===== */
+.gol-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+.gol-tab {
+  font-family: var(--font-head); background: var(--surface); border: 1px solid var(--line);
+  padding: 9px 16px; border-radius: 999px; font-size: 0.9rem; font-weight: 700; color: var(--ink-2);
+  cursor: pointer; transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out), transform 0.12s var(--ease-out);
+}
+.gol-tab:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) { .gol-tab:hover { border-color: var(--ink); } }
+.gol-tab.is-active { background: var(--accent); border-color: transparent; color: #fff; }
 .scorers { max-width: 640px; }
 .scorer-row {
   display: grid; grid-template-columns: 38px 1fr 38px 38px; align-items: center; gap: 10px;
@@ -328,6 +337,9 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
 .scorer-name small { font-weight: 500; color: var(--ink-2); font-size: 0.74rem; }
 .scorer-g { font-family: var(--font-head); font-weight: 900; font-size: 1.15rem; color: var(--green); text-align: center; }
 .scorer-a { font-weight: 700; color: var(--ink-2); text-align: center; }
+/* Color del valor principal según la pestaña activa */
+.scorers[data-tab="asist"] .scorer-g { color: var(--blue); }
+.scorers[data-tab="tarjetas"] .scorer-g { color: var(--orange); }
 
 /* ===== Botones ===== */
 .btn {

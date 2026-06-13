@@ -17,6 +17,7 @@ const ALLOWED = [
   /^calendar\/matches$/,
   /^live\/football\/\d+\/\d+\/\d+\/\d+$/,
   /^timelines\/\d+\/\d+\/\d+\/\d+$/,
+  /^teams\/\d+\/squad$/,
 ];
 
 export default async function handler(req, res) {

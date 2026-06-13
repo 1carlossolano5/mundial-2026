@@ -121,6 +121,8 @@ function fifaCalendar() {
           ts: Date.parse(m.Date),
           home: loc(m.Home && m.Home.TeamName),
           away: loc(m.Away && m.Away.TeamName),
+          homeId: m.Home && m.Home.IdTeam,
+          awayId: m.Away && m.Away.IdTeam,
         }))
       )
       .catch((e) => {
@@ -159,6 +161,26 @@ async function findFifaMatch(ev) {
   return best;
 }
 
+// IdTeam de FIFA para una selección (por nombre), buscando en el calendario.
+async function fifaTeamId(esName) {
+  const cal = await fifaCalendar();
+  let bestId = null;
+  let bestScore = 0;
+  for (const m of cal) {
+    const sh = nameScore(esName, m.home);
+    if (m.homeId && sh > bestScore) {
+      bestScore = sh;
+      bestId = m.homeId;
+    }
+    const sa = nameScore(esName, m.away);
+    if (m.awayId && sa > bestScore) {
+      bestScore = sa;
+      bestId = m.awayId;
+    }
+  }
+  return bestId;
+}
+
 // ---- Grupos ----
 let gruposCargados = false;
 const $gruposGrid = document.getElementById("gruposGrid");
@@ -168,17 +190,15 @@ function loadGroups() {
   gruposCargados = true;
   $gruposStatus.hidden = true;
   $gruposGrid.innerHTML = GROUPS.map((g) => {
-    const tuyo = g.teams.some((t) => t.name === "Colombia");
     return `
-    <div class="group-card ${tuyo ? "is-highlight" : ""}">
+    <div class="group-card">
       <div class="group-card__head">
         <span>Grupo ${g.letter}</span>
-        ${tuyo ? `<span class="group-card__badge">🇨🇴 Tu selección</span>` : ""}
       </div>
       ${g.teams
         .map(
           (t) => `
-        <button class="group-row ${t.name === "Colombia" ? "is-you" : ""}" data-team="${t.name}" aria-label="Ver jugadores y datos de ${t.name}">
+        <button class="group-row" data-team="${t.name}" aria-label="Ver jugadores y datos de ${t.name}">
           <img class="group-row__crest" src="${t.img}" alt="" loading="lazy" />
           <span class="group-row__name">${t.name}</span>
           <span class="group-row__go" aria-hidden="true">→</span>
@@ -497,24 +517,19 @@ const POS_ES = [
 
 const teamCache = {};
 
-// Plantel completo (26 jugadores con foto, DT) desde la API de FIFA: se toma
-// del partido más reciente del equipo en el Mundial. Si el equipo aún no
-// debuta, FIFA no publica la lista y se usa TheSportsDB como respaldo.
+// Plantel completo (lista de 26 convocados) desde la API de FIFA. El endpoint
+// /teams/{id}/squad existe para TODAS las selecciones, hayan jugado o no:
+// número, posición y técnico siempre; las fotos aparecen cuando el equipo
+// debuta. Devuelve null si no se halla el equipo.
 async function fifaSquad(esName) {
-  const cal = await fifaCalendar();
-  const mios = cal.filter((m) => nameScore(esName, m.home) + nameScore(esName, m.away) >= 1);
-  if (!mios.length) return null;
-  mios.sort((x, y) => x.ts - y.ts);
-  const jugados = mios.filter((m) => m.ts <= Date.now());
-  const pick = jugados[jugados.length - 1] || mios[0];
-  const detail = await fifaApi(`live/football/${FIFA_COMP}/${FIFA_SEASON}/${pick.stage}/${pick.id}`);
-  if (!detail || !detail.HomeTeam) return null;
-  const side =
-    nameScore(esName, loc(detail.HomeTeam.TeamName)) >= nameScore(esName, loc(detail.AwayTeam.TeamName))
-      ? detail.HomeTeam
-      : detail.AwayTeam;
-  if (!side || !(side.Players || []).length) return null;
-  return side;
+  const id = await fifaTeamId(esName);
+  if (!id) return null;
+  const sq = await fifaApi(`teams/${id}/squad`, {
+    idCompetition: FIFA_COMP,
+    idSeason: FIFA_SEASON,
+  });
+  if (!sq || !(sq.Players || []).length) return null;
+  return sq;
 }
 
 async function fetchTeamTSDB(esName) {
@@ -573,19 +588,22 @@ function renderTeam(esName, data) {
   const localTeam = GROUPS.flatMap((g) => g.teams).find((t) => t.name === esName);
   const crest = team.strBadge || (localTeam ? localTeam.img : "");
 
-  // Jugadores: plantel FIFA completo si existe; si no, lo de TheSportsDB.
+  // Jugadores: plantel FIFA completo (26) si existe; si no, lo de TheSportsDB.
+  // El endpoint squad usa Position 0-3 = arquero/defensa/medio/delantero.
   const FIFA_POS = ["Goalkeeper", "Defender", "Midfield", "Forward"];
   const players = squad
     ? (squad.Players || []).map((p) => ({
-        strPlayer: loc(p.PlayerName) + (p.Captain ? " (C)" : ""),
+        strPlayer: loc(p.PlayerName),
         strCutout: (p.PlayerPicture && p.PlayerPicture.PictureUrl) || "",
-        strNumber: p.ShirtNumber != null ? String(p.ShirtNumber) : "",
+        strNumber: p.JerseyNum != null ? String(p.JerseyNum) : "",
         strPosition: FIFA_POS[p.Position] || "",
         strTeam: esName,
       }))
     : (tsdb && tsdb.players) || [];
 
-  const fifaCoach = squad && ((squad.Coaches || []).find((c) => c.Role === 1) || (squad.Coaches || [])[0]);
+  // En el endpoint squad, el técnico (DT) es el oficial con Role === 0.
+  const fifaCoach =
+    squad && (squad.Officials || []).find((c) => c.Role === 0);
   const coach = players.find((p) => posGroup(p.strPosition) === "dt");
   const coachName =
     (fifaCoach && loc(fifaCoach.Name)) || (coach && coach.strPlayer) || team.strManager || "";
@@ -617,15 +635,21 @@ function renderTeam(esName, data) {
     </div>`;
 }
 
+// Token para que, si se abren varias selecciones seguidas, solo la última
+// escriba en el modal (evita que una petición lenta pise a la más reciente).
+let teamReqId = 0;
 async function openTeam(esName) {
+  const myReq = ++teamReqId;
   openModal($teamModal);
   $teamContent.innerHTML = spinnerHTML(`Cargando ${esName}...`);
   try {
     const data = teamCache[esName] || (teamCache[esName] = fetchTeam(esName));
-    renderTeam(esName, await data);
+    const resolved = await data;
+    if (myReq !== teamReqId) return; // llegó otra apertura después: se ignora
+    renderTeam(esName, resolved);
   } catch (err) {
     delete teamCache[esName];
-    $teamContent.innerHTML = modalError(err.message);
+    if (myReq === teamReqId) $teamContent.innerHTML = modalError(err.message);
   }
 }
 

@@ -215,17 +215,11 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
 .group-card:nth-child(4n+2) .group-card__head { background: var(--green); }
 .group-card:nth-child(4n+3) .group-card__head { background: var(--blue); }
 .group-card:nth-child(4n+4) .group-card__head { background: var(--orange); color: #1a1200; }
-.group-card__badge {
-  font-family: "Outfit", sans-serif; font-size: 0.72rem; font-weight: 800; text-transform: none; letter-spacing: 0;
-  color: var(--ink); background: rgba(255, 255, 255, 0.92); padding: 4px 10px; border-radius: 999px; white-space: nowrap;
-}
-.group-card.is-highlight { outline: 3px solid var(--orange); outline-offset: 0; }
 .group-row {
   display: flex; align-items: center; gap: 12px; padding: 12px 18px;
   border-bottom: 1px solid var(--line); font-size: 0.95rem;
 }
 .group-row:last-child { border-bottom: none; }
-.group-row.is-you { background: rgba(245, 158, 11, 0.12); font-weight: 700; }
 .group-row__crest { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; }
 .group-row__name { font-weight: 600; }
 

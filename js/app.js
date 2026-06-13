@@ -219,6 +219,21 @@ function fifaTeamMeta() {
   return fifaTeamMetaPromise;
 }
 
+// Plantilla de un equipo por IdTeam (cacheada). La usan el modal de selección,
+// la tabla de líderes (fotos) y el modal de jugador.
+const squadByIdCache = {};
+function fifaSquadById(idTeam) {
+  if (!squadByIdCache[idTeam]) {
+    squadByIdCache[idTeam] = fifaApi(`teams/${idTeam}/squad`, {
+      idCompetition: FIFA_COMP,
+      idSeason: FIFA_SEASON,
+    })
+      .then((sq) => (sq && (sq.Players || []).length ? sq : null))
+      .catch(() => null);
+  }
+  return squadByIdCache[idTeam];
+}
+
 // Ejecuta fn sobre items con un límite de concurrencia (no saturar la API).
 async function poolMap(items, limit, fn) {
   const results = [];
@@ -252,9 +267,11 @@ function playerFromDesc(desc) {
 let goleadoresCargado = false;
 let golTally = null; // tally cacheado para cambiar de pestaña sin recalcular
 let golTab = "goles";
+const golPlayerDir = {}; // IdPlayer → jugador del squad (para fotos en la tabla)
 const $golList = document.getElementById("golList");
 const $golStatus = document.getElementById("golStatus");
 const $golTabs = document.getElementById("golTabs");
+const $golFeature = document.getElementById("golFeature");
 const golTimelineCache = {};
 
 // Configuración de cada pestaña: columnas, valores, criterio de orden y ranking.
@@ -305,14 +322,16 @@ function renderGolTable(meta) {
     .slice(0, 25);
 
   if (!rows.length) {
+    $golFeature.hidden = true;
     $golList.innerHTML = `<p class="placeholder">${cfg.vacio} La tabla se llenará a medida que se jueguen los partidos.</p>`;
     return;
   }
+  renderGolFeature(rows[0], cfg, meta);
   let pos = 0;
   let prev = null;
   $golList.dataset.tab = golTab;
   $golList.innerHTML =
-    `<div class="scorer-row scorer-row--head"><span>#</span><span>Jugador</span><span>${cfg.cols[0]}</span><span>${cfg.cols[1]}</span></div>` +
+    `<div class="scorer-row scorer-row--head"><span>#</span><span></span><span>Jugador</span><span>${cfg.cols[0]}</span><span>${cfg.cols[1]}</span></div>` +
     rows
       .map((t, i) => {
         const r = cfg.rankBy(t);
@@ -322,15 +341,57 @@ function renderGolTable(meta) {
         }
         const tm = meta[t.idTeam] || {};
         const [v1, v2] = cfg.val(t);
-        return `<div class="scorer-row">
+        const foto = golPlayerDir[t.idPlayer] && golPlayerDir[t.idPlayer].PlayerPicture
+          ? golPlayerDir[t.idPlayer].PlayerPicture.PictureUrl
+          : "";
+        const ini = (t.name || "?")[0];
+        const fotoHTML = foto
+          ? `<img class="scorer-photo" src="${foto}" alt="" loading="lazy" onerror="this.outerHTML='<span class=\\'scorer-photo scorer-photo--ph\\'>${ini}</span>'" />`
+          : `<span class="scorer-photo scorer-photo--ph">${ini}</span>`;
+        const clic = t.idPlayer
+          ? `<button class="scorer-row is-clickable" data-player="${t.idPlayer}" data-team="${t.idTeam || ""}" aria-label="Ver ficha de ${t.name || ""}">`
+          : `<div class="scorer-row">`;
+        const cierre = t.idPlayer ? `</button>` : `</div>`;
+        return `${clic}
           <span class="scorer-pos">${pos}</span>
+          ${fotoHTML}
           <span class="scorer-name">${tm.flag ? tm.flag + " " : ""}${t.name || "—"}<small>${tm.name || ""}</small></span>
           <span class="scorer-g">${v1}</span>
           <span class="scorer-a">${v2}</span>
-        </div>`;
+        ${cierre}`;
       })
       .join("");
 }
+
+// Tarjeta destacada del líder (llena el espacio en pantallas anchas).
+function renderGolFeature(top, cfg, meta) {
+  const tm = meta[top.idTeam] || {};
+  const foto = golPlayerDir[top.idPlayer] && golPlayerDir[top.idPlayer].PlayerPicture
+    ? golPlayerDir[top.idPlayer].PlayerPicture.PictureUrl
+    : "";
+  const ini = (top.name || "?")[0];
+  const [v1] = cfg.val(top);
+  $golFeature.hidden = false;
+  $golFeature.innerHTML = `
+    <div class="feat-label">Líder · ${cfg.label.replace(/^\S+\s/, "")}</div>
+    ${top.idPlayer ? `<button class="feat-card is-clickable" data-player="${top.idPlayer}" data-team="${top.idTeam || ""}" aria-label="Ver ficha de ${top.name || ""}">` : `<div class="feat-card">`}
+      ${foto
+        ? `<img class="feat-photo" src="${foto}" alt="" onerror="this.outerHTML='<span class=\\'feat-photo feat-photo--ph\\'>${ini}</span>'" />`
+        : `<span class="feat-photo feat-photo--ph">${ini}</span>`}
+      <span class="feat-stat">${v1}</span>
+      <span class="feat-statlbl">${cfg.cols[0] === "G" ? "goles" : cfg.cols[0] === "A" ? "asistencias" : "tarjetas"}</span>
+      <h3 class="feat-name">${top.name || "—"}</h3>
+      <p class="feat-team">${tm.flag ? tm.flag + " " : ""}${tm.name || ""}</p>
+    ${top.idPlayer ? `</button>` : `</div>`}`;
+}
+
+// Clic en una fila de la tabla o en la tarjeta destacada -> modal de jugador.
+function golClickToPlayer(e) {
+  const el = e.target.closest("[data-player]");
+  if (el) openPlayer(el.dataset.player, el.dataset.team);
+}
+$golList.addEventListener("click", golClickToPlayer);
+$golFeature.addEventListener("click", golClickToPlayer);
 
 let golMeta = {};
 async function loadScorers() {
@@ -345,7 +406,7 @@ async function loadScorers() {
     const jugados = cal.filter((m) => m.ts <= Date.now());
     const listas = await poolMap(jugados, 6, timelineForMatch);
 
-    const tally = {}; // IdPlayer → { goles, asist, amarillas, rojas, name, idTeam }
+    const tally = {}; // IdPlayer → { goles, asist, amarillas, rojas, name, idTeam, idPlayer }
     listas.forEach((events) => {
       (events || []).forEach((e) => {
         const campo = GOL_EV[e.Type];
@@ -353,7 +414,7 @@ async function loadScorers() {
         const key = e.IdPlayer || "d:" + loc(e.EventDescription);
         const t =
           tally[key] ||
-          (tally[key] = { goles: 0, asist: 0, amarillas: 0, rojas: 0, name: playerFromDesc(loc(e.EventDescription)), idTeam: e.IdTeam });
+          (tally[key] = { goles: 0, asist: 0, amarillas: 0, rojas: 0, name: playerFromDesc(loc(e.EventDescription)), idTeam: e.IdTeam, idPlayer: e.IdPlayer || null });
         t[campo]++;
         if (!t.name) t.name = playerFromDesc(loc(e.EventDescription));
       });
@@ -361,7 +422,16 @@ async function loadScorers() {
     golTally = tally;
 
     $golStatus.hidden = true;
-    renderGolTable(meta);
+    renderGolTable(meta); // primero render rápido (sin fotos)
+
+    // Luego trae las plantillas de los equipos involucrados para las fotos y
+    // re-renderiza. Cacheadas y compartidas con el modal de selección/jugador.
+    const teamsInvolved = [...new Set(Object.values(tally).map((t) => t.idTeam).filter(Boolean))];
+    const squads = await poolMap(teamsInvolved, 6, fifaSquadById);
+    squads.forEach((sq) => {
+      if (sq) (sq.Players || []).forEach((p) => (golPlayerDir[p.IdPlayer] = p));
+    });
+    renderGolTable(meta); // re-render con fotos
   } catch (err) {
     $golStatus.hidden = true;
     goleadoresCargado = false; // permitir reintentar al volver a entrar
@@ -661,24 +731,31 @@ const $teamModal = document.getElementById("teamModal");
 const $teamContent = document.getElementById("teamContent");
 const $matchModal = document.getElementById("matchModal");
 const $matchContent = document.getElementById("matchContent");
+const $playerModal = document.getElementById("playerModal");
+const $playerContent = document.getElementById("playerContent");
 
+function anyModalOpen() {
+  return [...document.querySelectorAll(".modal")].some((m) => !m.hidden);
+}
 function openModal($m) {
   $m.hidden = false;
   document.body.style.overflow = "hidden";
 }
 function closeModal($m) {
   $m.hidden = true;
-  document.body.style.overflow = "";
+  if (!anyModalOpen()) document.body.style.overflow = ""; // mantener bloqueo si hay otro modal debajo
 }
-[$teamModal, $matchModal].forEach(($m) => {
+[$teamModal, $matchModal, $playerModal].forEach(($m) => {
   $m.addEventListener("click", (e) => {
     if (e.target.hasAttribute("data-close")) closeModal($m);
   });
 });
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  if (!$teamModal.hidden) closeModal($teamModal);
-  if (!$matchModal.hidden) closeModal($matchModal);
+  // Cierra primero el modal de más arriba (jugador), luego los de abajo.
+  if (!$playerModal.hidden) closeModal($playerModal);
+  else if (!$teamModal.hidden) closeModal($teamModal);
+  else if (!$matchModal.hidden) closeModal($matchModal);
 });
 
 const spinnerHTML = (msg) => `<div class="status"><div class="spinner"></div><p>${msg}</p></div>`;
@@ -721,12 +798,7 @@ const teamCache = {};
 async function fifaSquad(esName) {
   const id = await fifaTeamId(esName);
   if (!id) return null;
-  const sq = await fifaApi(`teams/${id}/squad`, {
-    idCompetition: FIFA_COMP,
-    idSeason: FIFA_SEASON,
-  });
-  if (!sq || !(sq.Players || []).length) return null;
-  return sq;
+  return fifaSquadById(id);
 }
 
 async function fetchTeamTSDB(esName) {
@@ -755,14 +827,19 @@ async function fetchTeam(esName) {
 function playerCard(p) {
   const foto = p.strCutout || p.strThumb || "";
   const num = p.strNumber && p.strNumber !== "0" ? p.strNumber : "";
+  // Si tiene IdPlayer (datos FIFA) la tarjeta es un botón que abre el modal jugador.
+  const clic = p.idPlayer
+    ? `<button class="player-card is-clickable" data-player="${p.idPlayer}" data-team="${p.idTeam || ""}" aria-label="Ver ficha de ${p.strPlayer || ""}">`
+    : `<div class="player-card">`;
+  const cierre = p.idPlayer ? `</button>` : `</div>`;
   return `
-    <div class="player-card">
+    ${clic}
       ${foto
         ? `<img class="player-card__photo" src="${foto}" alt="" loading="lazy" onerror="this.outerHTML='<span class=\\'player-card__ph\\'>${(p.strPlayer || "?")[0]}</span>'" />`
         : `<span class="player-card__ph">${(p.strPlayer || "?")[0]}</span>`}
       <span class="player-card__name">${p.strPlayer || ""}</span>
       <span class="player-card__meta">${num ? `#${num}` : ""}${p.strTeam2 && p.strTeam2 !== p.strTeam ? ` · ${p.strTeam2}` : ""}</span>
-    </div>`;
+    ${cierre}`;
 }
 
 function lastMatchRow(r, idTeam) {
@@ -795,6 +872,8 @@ function renderTeam(esName, data) {
         strNumber: p.JerseyNum != null ? String(p.JerseyNum) : "",
         strPosition: FIFA_POS[p.Position] || "",
         strTeam: esName,
+        idPlayer: p.IdPlayer,
+        idTeam: squad.IdTeam,
       }))
     : (tsdb && tsdb.players) || [];
 
@@ -848,6 +927,105 @@ async function openTeam(esName) {
     delete teamCache[esName];
     if (myReq === teamReqId) $teamContent.innerHTML = modalError(err.message);
   }
+}
+
+// Clic en una tarjeta de jugador (dentro del modal de selección) -> modal jugador.
+$teamContent.addEventListener("click", (e) => {
+  const card = e.target.closest(".player-card[data-player]");
+  if (card) openPlayer(card.dataset.player, card.dataset.team);
+});
+
+// =====================================================================
+// DETALLE DE JUGADOR (foto grande + datos)
+// =====================================================================
+const PIE_ES = { 1: "Derecho", 2: "Izquierdo", 3: "Ambos" };
+const playerByIdCache = {};
+function fifaPlayer(idPlayer) {
+  if (!playerByIdCache[idPlayer]) {
+    playerByIdCache[idPlayer] = fifaApi(`players/${idPlayer}`).catch(() => null);
+  }
+  return playerByIdCache[idPlayer];
+}
+
+function edad(birth) {
+  if (!birth) return null;
+  const ms = Date.now() - new Date(birth).getTime();
+  const a = Math.floor(ms / 31557600000);
+  return a > 0 && a < 60 ? a : null;
+}
+
+let playerReqId = 0;
+async function openPlayer(idPlayer, idTeam) {
+  if (!idPlayer) return;
+  const myReq = ++playerReqId;
+  openModal($playerModal);
+  $playerContent.innerHTML = spinnerHTML("Cargando jugador...");
+  try {
+    const [squad, info, meta] = await Promise.all([
+      idTeam ? fifaSquadById(idTeam) : Promise.resolve(null),
+      fifaPlayer(idPlayer),
+      fifaTeamMeta().catch(() => ({})),
+    ]);
+    if (myReq !== playerReqId) return;
+    const sp = squad && (squad.Players || []).find((p) => p.IdPlayer === idPlayer);
+    if (!sp && !info) {
+      $playerContent.innerHTML = modalError("No se encontraron datos de este jugador.");
+      return;
+    }
+    renderPlayer({ sp, info, idPlayer, tm: (meta && meta[idTeam]) || {} });
+  } catch (err) {
+    if (myReq === playerReqId) $playerContent.innerHTML = modalError(err.message);
+  }
+}
+
+function renderPlayer({ sp, info, idPlayer, tm }) {
+  const nombre = (sp && loc(sp.PlayerName)) || (info && loc(info.Name)) || "Jugador";
+  const foto = (sp && sp.PlayerPicture && sp.PlayerPicture.PictureUrl) || "";
+  tm = tm || {};
+  const posLabel = sp ? loc(sp.PositionLocalized) : "";
+  const num = sp && sp.JerseyNum != null ? sp.JerseyNum : null;
+  const aniosNac = info && info.BirthDate ? new Date(info.BirthDate).getFullYear() : (sp && sp.BirthDate ? new Date(sp.BirthDate).getFullYear() : null);
+  const a = edad((info && info.BirthDate) || (sp && sp.BirthDate));
+  const altura = (sp && sp.Height) || (info && info.Height);
+  const peso = (sp && sp.Weight) || (info && info.Weight);
+  const pie = info && PIE_ES[info.PreferredFoot];
+  const caps = info && info.InternationalCaps;
+  const golesCarrera = info && info.Goals;
+  const torneo = (golTally && golTally[idPlayer]) || null;
+
+  const dato = (label, val) => (val || val === 0 ? `<div class="pl-dato"><span>${label}</span><b>${val}</b></div>` : "");
+
+  $playerContent.innerHTML = `
+    <div class="pl-head">
+      ${foto
+        ? `<img class="pl-photo" src="${foto}" alt="" onerror="this.outerHTML='<span class=\\'pl-photo pl-photo--ph\\'>${(nombre[0] || "?")}</span>'" />`
+        : `<span class="pl-photo pl-photo--ph">${nombre[0] || "?"}</span>`}
+      <div class="pl-headinfo">
+        ${num != null ? `<span class="pl-num">#${num}</span>` : ""}
+        <h2 class="pl-name">${nombre}</h2>
+        <p class="pl-team">${tm.flag ? tm.flag + " " : ""}${tm.name || ""}${posLabel ? ` · ${posLabel}` : ""}</p>
+      </div>
+    </div>
+    <div class="modal-pad">
+      <div class="pl-grid">
+        ${dato("Edad", a ? `${a} años` : "")}
+        ${dato("Nacimiento", aniosNac)}
+        ${dato("Estatura", altura ? `${Math.round(altura)} cm` : "")}
+        ${dato("Peso", peso ? `${Math.round(peso)} kg` : "")}
+        ${dato("Pie hábil", pie)}
+        ${dato("Partidos internac.", caps)}
+        ${dato("Goles (selección)", golesCarrera)}
+      </div>
+      ${torneo
+        ? `<h3 class="tm-sub">En el Mundial 2026</h3>
+           <div class="pl-tourney">
+             <div class="pl-stat"><b>${torneo.goles}</b><span>⚽ Goles</span></div>
+             <div class="pl-stat"><b>${torneo.asist}</b><span>🅰️ Asist.</span></div>
+             <div class="pl-stat"><b>${torneo.amarillas}</b><span>🟨 Amar.</span></div>
+             <div class="pl-stat"><b>${torneo.rojas}</b><span>🟥 Rojas</span></div>
+           </div>`
+        : ""}
+    </div>`;
 }
 
 // =====================================================================

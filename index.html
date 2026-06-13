@@ -91,7 +91,10 @@
         <p class="view__intro">Goleadores, asistidores y tarjetas del Mundial, calculados a partir de cada partido jugado. Se actualizan a medida que avanza el torneo.</p>
         <div class="gol-tabs" id="golTabs" role="tablist"></div>
         <div class="status" id="golStatus" hidden><div class="spinner"></div><p>Calculando...</p></div>
-        <div class="scorers" id="golList"></div>
+        <div class="gol-layout">
+          <div class="scorers" id="golList"></div>
+          <aside class="gol-feature" id="golFeature" hidden></aside>
+        </div>
       </section>
 
       <!-- SIMULADOR -->
@@ -130,6 +133,15 @@
     <div class="modal__box modal__box--wide" role="dialog" aria-modal="true" aria-label="Detalle del partido">
       <button class="modal__close" data-close aria-label="Cerrar">✕</button>
       <div id="matchContent"></div>
+    </div>
+  </div>
+
+  <!-- Modal de jugador (foto grande + datos) -->
+  <div class="modal" id="playerModal" hidden>
+    <div class="modal__overlay" data-close></div>
+    <div class="modal__box" role="dialog" aria-modal="true" aria-label="Detalle del jugador">
+      <button class="modal__close" data-close aria-label="Cerrar">✕</button>
+      <div id="playerContent"></div>
     </div>
   </div>
 

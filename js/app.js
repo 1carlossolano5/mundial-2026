@@ -1313,6 +1313,15 @@ function statBar(s) {
     </div>`;
 }
 
+// Partidos confirmados por señal abierta (Caracol/RCN), además de los de
+// Colombia. Clave por par de nombres (sin orden, sin acentos). Agregar aquí
+// los que confirmen los canales día a día.
+const tvPairKey = (a, b) => [normTxt(a), normTxt(b)].sort().join("|");
+const FREE_TO_AIR_PAIRS = new Set([
+  tvPairKey("México", "Sudáfrica"), // partido inaugural
+  tvPairKey("Brasil", "Marruecos"), // confirmado
+]);
+
 function renderMatch(data) {
   const { detail, events, standings } = data;
   const home = detail.HomeTeam, away = detail.AwayTeam;
@@ -1371,15 +1380,19 @@ function renderMatch(data) {
        </div>`
     : "";
 
-  // Dónde ver (Colombia).
-  const hayCol = [nh, na].includes("Colombia");
+  // Dónde ver (Colombia). DSports/DGO + Paramount+ tienen los 104; Caracol/RCN
+  // (señal abierta, gratis) solo en partidos confirmados (Colombia + lista curada).
+  const senalAbierta =
+    [nh, na].includes("Colombia") || FREE_TO_AIR_PAIRS.has(tvPairKey(nh, na));
   const verHTML = `<h3 class="tm-sub">Dónde ver (Colombia)</h3>
     <div class="watch">
       <span class="watch-chip">DSports / DGO</span>
       <span class="watch-chip">Paramount+</span>
-      ${hayCol ? `<span class="watch-chip watch-chip--free">📺 Caracol</span><span class="watch-chip watch-chip--free">📺 RCN</span>` : `<span class="watch-chip">Disney+</span>`}
+      ${senalAbierta ? `<span class="watch-chip watch-chip--free">📺 Caracol</span><span class="watch-chip watch-chip--free">📺 RCN</span>` : ""}
     </div>
-    <p class="watch-note">DSports/DGO y Paramount+ transmiten los 104 partidos.${hayCol ? " Los de Colombia van también en señal abierta por Caracol y RCN." : " Caracol/RCN (señal abierta) y Disney+ pasan partidos selectos."}</p>`;
+    <p class="watch-note">${senalAbierta
+      ? "Gratis en señal abierta por <b>Caracol</b> y <b>RCN</b>. También en DSports/DGO y Paramount+."
+      : "Solo en <b>DSports/DGO</b> y <b>Paramount+</b> · este partido no va por señal abierta."}</p>`;
 
   $matchContent.innerHTML = `
     <div class="mm-head">

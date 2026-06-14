@@ -1466,15 +1466,11 @@ function renderMatch(data) {
       ? `Gratis en señal abierta por <b>Caracol</b> y <b>RCN</b>. También por ${pagos}.`
       : `Disponible por <b>${pagos}</b> · este partido no va por señal abierta.`}</p>`;
 
-  // Resumen / video en YouTube (búsqueda directa; los resúmenes salen tras el partido).
+  // Resumen en video, incrustado debajo de estadísticas. El videoId lo busca la
+  // función /api/youtube (sin key) y se hidrata tras pintar el modal.
   const definido = nh !== "Por definir" && na !== "Por definir";
-  const ytTerm = estado === "prog" ? "previa" : "resumen goles";
-  const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${nh} vs ${na} ${ytTerm} Mundial 2026`)}`;
-  const ytLabel = estado === "fin" ? "Ver resumen y goles" : estado === "live" ? "Ver clips en vivo" : "Ver previa";
-  const ytHTML = definido
-    ? `<h3 class="tm-sub">Resumen en video</h3>
-       <a class="yt-btn" href="${ytUrl}" target="_blank" rel="noopener">▶ ${ytLabel} en YouTube</a>
-       <p class="watch-note">Abre YouTube con ${estado === "fin" ? "el resumen y los goles" : estado === "live" ? "los clips" : "la previa"} del partido.</p>`
+  const videoHTML = definido
+    ? `<h3 class="tm-sub">Resumen en video</h3><div class="yt-video" id="ytVideo">${spinnerHTML("Buscando el resumen...")}</div>`
     : "";
 
   $matchContent.innerHTML = `
@@ -1485,14 +1481,51 @@ function renderMatch(data) {
     </div>
     <div class="modal-pad">
       ${meta ? `<p class="mm-meta">${meta}</p>` : ""}
-      ${estado !== "prog" ? ytHTML : ""}
       ${momentosHTML}
       ${alinHTML}
       ${statsHTML}
+      ${videoHTML}
       ${oddsHTML}
       ${verHTML}
-      ${estado === "prog" ? ytHTML : ""}
     </div>`;
+
+  if (definido) hydrateMatchVideo(document.getElementById("ytVideo"), nh, na, estado);
+}
+
+// Busca el videoId del resumen vía la función serverless (evita CORS de YouTube).
+async function youtubeVideoId(query) {
+  const url = new URL("/api/youtube", window.location.origin);
+  url.searchParams.set("q", query);
+  const r = await fetch(url);
+  if (!r.ok) throw new Error("sin función");
+  const d = await r.json();
+  if (!d.videoId) throw new Error("sin video");
+  return d.videoId;
+}
+
+// Rellena el contenedor: miniatura (clic para reproducir) o link de respaldo.
+async function hydrateMatchVideo(box, nh, na, estado) {
+  if (!box) return;
+  const term = estado === "prog" ? "previa" : "resumen goles";
+  const query = `${nh} vs ${na} ${term} Mundial 2026`;
+  try {
+    const id = await youtubeVideoId(query);
+    if (!document.body.contains(box)) return; // se abrió otro partido
+    box.innerHTML = `
+      <button class="yt-thumb" aria-label="Reproducir resumen de ${nh} vs ${na}">
+        <img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy" />
+        <span class="yt-play" aria-hidden="true">▶</span>
+        <span class="yt-cap">▶ ${estado === "fin" ? "Resumen y goles" : estado === "live" ? "Clips del partido" : "Previa"} · ${nh} vs ${na}</span>
+      </button>`;
+    box.querySelector(".yt-thumb").addEventListener("click", () => {
+      box.innerHTML = `<div class="yt-frame"><iframe src="https://www.youtube.com/embed/${id}?autoplay=1&rel=0" title="Resumen ${nh} vs ${na}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen frameborder="0"></iframe></div>`;
+    });
+  } catch {
+    // Respaldo (Live Server / sin función / sin resultado): link a la búsqueda.
+    const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+    box.innerHTML = `<a class="yt-btn" href="${ytUrl}" target="_blank" rel="noopener">▶ Ver resumen en YouTube</a>
+      <p class="watch-note">El video se incrusta aquí en el sitio publicado; abre YouTube si lo ves en local.</p>`;
+  }
 }
 
 const matchCache = {};

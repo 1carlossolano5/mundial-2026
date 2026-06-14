@@ -1359,6 +1359,34 @@ const FREE_TO_AIR_PAIRS = new Set([
 // Rondas finales que Caracol/RCN pasan completas por señal abierta.
 const FREE_TO_AIR_STAGES = /^(Semifinal|Final)$/i;
 
+// Partidos que transmite Disney+ (ESPN) en Colombia: 22 de grupos (lista ESPN)
+// + los de Colombia + semifinales y final. Eliminatorias específicas: pendientes.
+const DISNEY_PAIRS = new Set([
+  tvPairKey("México", "Sudáfrica"),
+  tvPairKey("Canadá", "Bosnia y Herzegovina"),
+  tvPairKey("Estados Unidos", "Paraguay"),
+  tvPairKey("Brasil", "Marruecos"),
+  tvPairKey("Países Bajos", "Japón"),
+  tvPairKey("Costa de Marfil", "Ecuador"),
+  tvPairKey("España", "Cabo Verde"),
+  tvPairKey("Arabia Saudita", "Uruguay"),
+  tvPairKey("Argentina", "Argelia"),
+  tvPairKey("Uzbekistán", "Colombia"),
+  tvPairKey("Suiza", "Bosnia y Herzegovina"),
+  tvPairKey("Alemania", "Costa de Marfil"),
+  tvPairKey("Ecuador", "Curazao"),
+  tvPairKey("España", "Arabia Saudita"),
+  tvPairKey("Bélgica", "Irán"),
+  tvPairKey("Argentina", "Austria"),
+  tvPairKey("Colombia", "R.D. Congo"),
+  tvPairKey("Brasil", "Escocia"),
+  tvPairKey("Ecuador", "Alemania"),
+  tvPairKey("Noruega", "Francia"),
+  tvPairKey("Uruguay", "España"),
+  tvPairKey("Colombia", "Portugal"),
+  tvPairKey("Jordania", "Argentina"),
+]);
+
 function renderMatch(data) {
   const { detail, events, standings, calMatch } = data;
   const home = detail.HomeTeam, away = detail.AwayTeam;
@@ -1420,20 +1448,23 @@ function renderMatch(data) {
     : "";
 
   // Dónde ver (Colombia). DSports/DGO + Paramount+ tienen los 104; Caracol/RCN
-  // (señal abierta, gratis) solo en partidos confirmados (Colombia + lista curada).
-  const senalAbierta =
-    [nh, na].includes("Colombia") ||
-    FREE_TO_AIR_STAGES.test(stageName) ||
-    FREE_TO_AIR_PAIRS.has(tvPairKey(nh, na));
+  // (señal abierta gratis) y Disney+ solo en partidos confirmados.
+  const pareja = tvPairKey(nh, na);
+  const hayCol = [nh, na].includes("Colombia");
+  const finales = FREE_TO_AIR_STAGES.test(stageName);
+  const senalAbierta = hayCol || finales || FREE_TO_AIR_PAIRS.has(pareja);
+  const disney = hayCol || finales || DISNEY_PAIRS.has(pareja);
+  const pagos = ["DSports/DGO", "Paramount+"].concat(disney ? ["Disney+"] : []).join(", ");
   const verHTML = `<h3 class="tm-sub">Dónde ver (Colombia)</h3>
     <div class="watch">
       <span class="watch-chip">DSports / DGO</span>
       <span class="watch-chip">Paramount+</span>
+      ${disney ? `<span class="watch-chip">Disney+</span>` : ""}
       ${senalAbierta ? `<span class="watch-chip watch-chip--free">📺 Caracol</span><span class="watch-chip watch-chip--free">📺 RCN</span>` : ""}
     </div>
     <p class="watch-note">${senalAbierta
-      ? "Gratis en señal abierta por <b>Caracol</b> y <b>RCN</b>. También en DSports/DGO y Paramount+."
-      : "Solo en <b>DSports/DGO</b> y <b>Paramount+</b> · este partido no va por señal abierta."}</p>`;
+      ? `Gratis en señal abierta por <b>Caracol</b> y <b>RCN</b>. También por ${pagos}.`
+      : `Disponible por <b>${pagos}</b> · este partido no va por señal abierta.`}</p>`;
 
   $matchContent.innerHTML = `
     <div class="mm-head">

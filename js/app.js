@@ -1466,10 +1466,10 @@ function renderMatch(data) {
       ? `Gratis en señal abierta por <b>Caracol</b> y <b>RCN</b>. También por ${pagos}.`
       : `Disponible por <b>${pagos}</b> · este partido no va por señal abierta.`}</p>`;
 
-  // Resumen en video, incrustado debajo de estadísticas. El videoId lo busca la
-  // función /api/youtube (sin key) y se hidrata tras pintar el modal.
-  const definido = nh !== "Por definir" && na !== "Por definir";
-  const videoHTML = definido
+  // Resumen en video, incrustado debajo de estadísticas. Solo para partidos
+  // YA jugados (el resumen no existe antes). El videoId lo busca /api/youtube.
+  const mostrarVideo = nh !== "Por definir" && na !== "Por definir" && estado === "fin";
+  const videoHTML = mostrarVideo
     ? `<h3 class="tm-sub">Resumen en video</h3><div class="yt-video" id="ytVideo">${spinnerHTML("Buscando el resumen...")}</div>`
     : "";
 
@@ -1489,7 +1489,7 @@ function renderMatch(data) {
       ${verHTML}
     </div>`;
 
-  if (definido) hydrateMatchVideo(document.getElementById("ytVideo"), nh, na, estado);
+  if (mostrarVideo) hydrateMatchVideo(document.getElementById("ytVideo"), nh, na);
 }
 
 // Busca el videoId del resumen vía la función serverless (evita CORS de YouTube).
@@ -1504,10 +1504,11 @@ async function youtubeVideoId(query) {
 }
 
 // Rellena el contenedor: miniatura (clic para reproducir) o link de respaldo.
-async function hydrateMatchVideo(box, nh, na, estado) {
+// Se sesga a ESPN (rights holder en Latam) para que el video sea reproducible
+// en Colombia, no el de FIFA u otros que bloquean la región.
+async function hydrateMatchVideo(box, nh, na) {
   if (!box) return;
-  const term = estado === "prog" ? "previa" : "resumen goles";
-  const query = `${nh} vs ${na} ${term} Mundial 2026`;
+  const query = `${nh} vs ${na} resumen ESPN Mundial 2026`;
   try {
     const id = await youtubeVideoId(query);
     if (!document.body.contains(box)) return; // se abrió otro partido
@@ -1515,7 +1516,7 @@ async function hydrateMatchVideo(box, nh, na, estado) {
       <button class="yt-thumb" aria-label="Reproducir resumen de ${nh} vs ${na}">
         <img src="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="" loading="lazy" />
         <span class="yt-play" aria-hidden="true">▶</span>
-        <span class="yt-cap">▶ ${estado === "fin" ? "Resumen y goles" : estado === "live" ? "Clips del partido" : "Previa"} · ${nh} vs ${na}</span>
+        <span class="yt-cap">▶ Resumen y goles · ${nh} vs ${na}</span>
       </button>`;
     box.querySelector(".yt-thumb").addEventListener("click", () => {
       box.innerHTML = `<div class="yt-frame"><iframe src="https://www.youtube.com/embed/${id}?autoplay=1&rel=0" title="Resumen ${nh} vs ${na}" allow="autoplay; encrypted-media; fullscreen" allowfullscreen frameborder="0"></iframe></div>`;

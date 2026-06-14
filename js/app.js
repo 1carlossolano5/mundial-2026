@@ -1550,7 +1550,9 @@ async function playFirstPlayable(box, ids, query) {
 // Rellena el contenedor: miniatura (clic para reproducir) o link de respaldo.
 async function hydrateMatchVideo(box, nh, na) {
   if (!box) return;
-  const query = `${nh} vs ${na} resumen Mundial 2026`;
+  // Prioriza ESPN (rights holder en Latam, reproducible en Colombia); si por
+  // región estuviera bloqueado, el reproductor salta al siguiente candidato.
+  const query = `${nh} vs ${na} resumen ESPN Mundial 2026`;
   try {
     const ids = await youtubeVideoIds(query);
     if (!document.body.contains(box)) return; // se abrió otro partido

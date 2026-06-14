@@ -132,6 +132,10 @@ function fifaCalendar() {
             homeId: m.Home && m.Home.IdTeam,
             awayId: m.Away && m.Away.IdTeam,
             group: loc(m.GroupName), // "Grupo A"… (vacío en eliminatorias)
+            stageName: loc(m.StageName), // "Primera fase", "Octavos"…
+            status: m.MatchStatus, // 0 fin · 3/12 en vivo · 1 programado
+            minute: m.MatchTime, // "67'" en vivo
+            venue: loc(m.Stadium && m.Stadium.Name),
             homeScore,
             awayScore,
             goals: (homeScore || 0) + (awayScore || 0),
@@ -373,7 +377,7 @@ function renderGolTable(meta) {
         return `${clic}
           <span class="scorer-pos">${pos}</span>
           ${fotoHTML}
-          <span class="scorer-name">${tm.flag ? tm.flag + " " : ""}${t.name || "—"}<small>${tm.name || ""}</small></span>
+          <span class="scorer-name">${t.name || "—"}<small>${tm.name || ""}</small></span>
           <span class="scorer-g">${v1}</span>
           <span class="scorer-a">${v2}</span>
         ${cierre}`;
@@ -399,7 +403,7 @@ function renderGolFeature(top, cfg, meta) {
       <span class="feat-stat">${v1}</span>
       <span class="feat-statlbl">${cfg.cols[0] === "G" ? "goles" : cfg.cols[0] === "A" ? "asistencias" : "tarjetas"}</span>
       <h3 class="feat-name">${top.name || "—"}</h3>
-      <p class="feat-team">${tm.flag ? tm.flag + " " : ""}${tm.name || ""}</p>
+      <p class="feat-team">${tm.name || ""}</p>
     ${top.idPlayer ? `</button>` : `</div>`}`;
 }
 
@@ -695,90 +699,63 @@ function fmtFechaLocal(d) {
   return d.toLocaleDateString(APP_LOCALE, { weekday: "long", day: "numeric", month: "long" });
 }
 
-// Estado de un partido según la API: "fin" (terminado), "live" (en juego) o "prog" (programado).
-const ST_FIN = ["Match Finished", "FT", "AET", "PEN", "Full Time", "After Extra Time", "Penalties"];
-const ST_NO_INICIADO = ["", "Not Started", "NS", "TBD", "Time to be defined", "Postponed", "POSTP", "Cancelled", "CANC"];
-function matchState(e) {
-  const st = (e.strStatus || "").trim();
-  const conMarcador = e.intHomeScore != null && e.intAwayScore != null;
-  if (ST_FIN.includes(st)) return "fin";
-  if (conMarcador && !ST_NO_INICIADO.includes(st)) return "live";
-  if (conMarcador) return "fin";
+// Estado de un partido FIFA: 0 = terminado · 3/12 = en vivo · resto = programado.
+function fifaState(status) {
+  if (status === 0) return "fin";
+  if (status === 3 || status === 12) return "live";
   return "prog";
 }
 
-function matchCard(e) {
-  const estado = matchState(e);
-  const d = matchDate(e);
-  const hora = d ? fmtHoraLocal(d) : (e.strTime || "").slice(0, 5) || "vs";
+// Tarjeta de partido (datos FIFA). Escudo y nombre desde GROUPS (escudo local).
+function fifaMatchCard(m) {
+  const estado = fifaState(m.status);
+  const th = groupTeamForFifa(m.home), ta = groupTeamForFifa(m.away);
+  const nh = th ? th.name : m.home, na = ta ? ta.name : m.away;
+  const ch = th ? th.img : "", ca = ta ? ta.img : "";
+  const d = new Date(m.ts);
+  const hora = isNaN(d.getTime()) ? "vs" : fmtHoraLocal(d);
   const centro =
     estado === "prog"
       ? `<span class="mc__time">${hora}</span>`
-      : `<span class="mc__score">${e.intHomeScore ?? "·"} - ${e.intAwayScore ?? "·"}</span>`;
-  const bajoCentro =
+      : `<span class="mc__score">${m.homeScore ?? "·"} - ${m.awayScore ?? "·"}</span>`;
+  const bajo =
     estado === "fin"
       ? `<span class="mc__ft">Final</span>`
       : estado === "live"
-        ? `<span class="mc__live">● En vivo${e.strProgress ? ` ${e.strProgress}'` : ""}</span>`
+        ? `<span class="mc__live">● En vivo${m.minute ? " " + m.minute : ""}</span>`
         : "";
+  const sub = [m.venue ? `📍 ${m.venue}` : "", m.group || m.stageName].filter(Boolean).join(" · ");
   return `
-    <button class="match-card ${estado === "fin" ? "is-played" : ""} ${estado === "live" ? "is-live" : ""}" data-id="${e.idEvent}" aria-label="Ver detalle de ${teamName(e.strHomeTeam)} vs ${teamName(e.strAwayTeam)}">
-      <div class="mc__team mc__home">
-        <span>${teamName(e.strHomeTeam)}</span>
-        <img src="${e.strHomeTeamBadge || ""}" alt="" loading="lazy" />
-      </div>
-      <div class="mc__center">${centro}${bajoCentro}</div>
-      <div class="mc__team mc__away">
-        <img src="${e.strAwayTeamBadge || ""}" alt="" loading="lazy" />
-        <span>${teamName(e.strAwayTeam)}</span>
-      </div>
-      ${e.strVenue ? `<div class="mc__venue">📍 ${e.strVenue}</div>` : ""}
+    <button class="match-card ${estado === "fin" ? "is-played" : ""} ${estado === "live" ? "is-live" : ""}" data-id="${m.id}" data-stage="${m.stage}" aria-label="Ver ${nh} vs ${na}">
+      <div class="mc__team mc__home"><span>${nh}</span><img src="${ch}" alt="" loading="lazy" /></div>
+      <div class="mc__center">${centro}${bajo}</div>
+      <div class="mc__team mc__away"><img src="${ca}" alt="" loading="lazy" /><span>${na}</span></div>
+      ${sub ? `<div class="mc__venue">${sub}</div>` : ""}
     </button>`;
 }
 
-// Jornadas de grupos (1-3) + códigos de rondas de eliminatorias de TheSportsDB
-// (125 Final, 126 Semis, 127 Cuartos, 128 Octavos/16avos, 129 32avos).
-const CAL_ROUNDS = [1, 2, 3, 129, 128, 127, 126, 125];
-
-// Trae todas las jornadas/rondas en paralelo y las combina sin duplicados.
-async function fetchCalendarEvents() {
-  const listas = await Promise.all(
-    CAL_ROUNDS.map((r) =>
-      api("eventsround.php", { id: WC_LEAGUE, r, s: SEASON })
-        .then((d) => d.events || [])
-        .catch(() => [])
-    )
-  );
-  const vistos = new Set();
-  const events = [];
-  for (const lista of listas) {
-    for (const e of lista) {
-      if (e && e.idEvent && !vistos.has(e.idEvent)) {
-        vistos.add(e.idEvent);
-        events.push(e);
-      }
-    }
-  }
-  events.sort((a, b) => (a.strTimestamp || "").localeCompare(b.strTimestamp || ""));
-  return events;
-}
-
-function renderCalendar(events) {
-  if (!events.length) {
-    $calList.innerHTML = `<p class="placeholder">Aún no hay partidos publicados por la API. Aparecerán a medida que se acerque y juegue el torneo.</p>`;
+// Orden: en vivo primero, luego por fecha/hora.
+function renderCalendar(cal) {
+  if (!cal.length) {
+    $calList.innerHTML = `<p class="placeholder">Aún no hay partidos publicados por la API.</p>`;
     return;
   }
+  const sorted = cal.slice().sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  const live = sorted.filter((m) => fifaState(m.status) === "live");
   let html = "";
-  let claveActual = "";
-  for (const e of events) {
-    const d = matchDate(e);
-    const clave = d ? d.toLocaleDateString("en-CA") : e.dateEvent;
-    if (clave !== claveActual) {
-      claveActual = clave;
-      const label = d ? fmtFechaLocal(d) : fmtFecha(e.dateEvent);
-      html += `<h3 class="cal-date">${label}</h3>`;
+  if (live.length) {
+    html += `<h3 class="cal-date cal-date--live">● En vivo ahora</h3>` + live.map(fifaMatchCard).join("");
+  }
+  let clave = "";
+  for (const m of sorted) {
+    if (fifaState(m.status) === "live") continue; // ya van arriba
+    const d = new Date(m.ts);
+    const k = isNaN(d.getTime()) ? "?" : d.toLocaleDateString("en-CA");
+    if (k !== clave) {
+      clave = k;
+      html += `<h3 class="cal-date">${isNaN(d.getTime()) ? "Por definir" : fmtFechaLocal(d)}</h3>`;
     }
-    html += matchCard(e);
+    html += fifaMatchCard(m);
   }
   $calList.innerHTML = html;
 }
@@ -788,9 +765,9 @@ async function loadCalendar() {
   $calStatus.hidden = false;
   $calList.innerHTML = "";
   try {
-    const events = await fetchCalendarEvents();
+    const cal = await fifaCalendar();
     $calStatus.hidden = true;
-    renderCalendar(events);
+    renderCalendar(cal);
   } catch (err) {
     $calStatus.hidden = true;
     calendarioCargado = false; // permitir reintentar al volver a entrar
@@ -799,8 +776,8 @@ async function loadCalendar() {
 }
 
 // ---- Refresco automático (resultados en vivo) ----
-// Cada 60s, solo mientras la vista Calendario está activa y sin tocar el
-// scroll del usuario: se re-renderiza con los datos nuevos en silencio.
+// Cada 60s, mientras la vista Calendario está activa, re-trae el calendario
+// (forzando el re-fetch para ver marcadores y estados nuevos).
 const CAL_REFRESH_MS = 60000;
 let calTimer = null;
 function startCalRefresh() {
@@ -808,7 +785,8 @@ function startCalRefresh() {
   calTimer = setInterval(async () => {
     if (document.hidden || !calendarioCargado) return;
     try {
-      renderCalendar(await fetchCalendarEvents());
+      fifaCalPromise = null; // forzar datos frescos
+      renderCalendar(await fifaCalendar());
     } catch {} // si falla un refresco, se conserva lo que ya está en pantalla
   }, CAL_REFRESH_MS);
 }
@@ -820,7 +798,7 @@ function stopCalRefresh() {
 // Clic en un partido -> modal con alineaciones, goles y estadísticas.
 $calList.addEventListener("click", (e) => {
   const card = e.target.closest(".match-card[data-id]");
-  if (card) openMatch(card.dataset.id);
+  if (card) openMatch(card.dataset.stage, card.dataset.id);
 });
 
 // =====================================================================
@@ -996,7 +974,7 @@ function renderTeam(esName, data) {
     <div class="tm-head">
       <img class="tm-crest" src="${crest}" alt="" />
       <div>
-        <h2 class="tm-name">${localTeam ? localTeam.flag + " " : ""}${esName}</h2>
+        <h2 class="tm-name">${esName}</h2>
         ${coachName ? `<p class="tm-coach">Técnico: <b>${coachName}</b></p>` : ""}
       </div>
     </div>
@@ -1102,7 +1080,7 @@ function renderPlayer({ sp, info, idPlayer, tm }) {
       <div class="pl-headinfo">
         ${num != null ? `<span class="pl-num">#${num}</span>` : ""}
         <h2 class="pl-name">${nombre}</h2>
-        <p class="pl-team">${tm.flag ? tm.flag + " " : ""}${tm.name || ""}${posLabel ? ` · ${posLabel}` : ""}</p>
+        <p class="pl-team">${tm.name || ""}${posLabel ? ` · ${posLabel}` : ""}</p>
       </div>
     </div>
     <div class="modal-pad">
@@ -1159,32 +1137,40 @@ function timelineIcon(t) {
   return "•";
 }
 
-async function fetchMatch(id) {
-  const [ev, lineup, timeline, stats] = await Promise.all([
-    api("lookupevent.php", { id }).then((d) => (d.events || [])[0] || null).catch(() => null),
-    api("lookuplineup.php", { id }).then((d) => d.lineup || []).catch(() => []),
-    api("lookuptimeline.php", { id }).then((d) => d.timeline || []).catch(() => []),
-    api("lookupeventstats.php", { id }).then((d) => d.eventstats || []).catch(() => []),
+// Detalle del partido directo desde FIFA por stage+id (sin cruces difusos):
+// alineaciones de 26, táctica, técnico, árbitro y minuto a minuto en español.
+async function fetchMatch(stage, id) {
+  const [detail, events, cal] = await Promise.all([
+    fifaApi(`live/football/${FIFA_COMP}/${FIFA_SEASON}/${stage}/${id}`),
+    fifaApi(`timelines/${FIFA_COMP}/${FIFA_SEASON}/${stage}/${id}`).then((d) => d.Event || []).catch(() => []),
+    fifaCalendar().catch(() => []),
   ]);
-  if (!ev) throw new Error("No se pudo cargar el detalle del partido.");
+  if (!detail || !detail.HomeTeam) throw new Error("No se pudo cargar el detalle del partido.");
+  return { detail, events, standings: computeGroupStandings(cal || []) };
+}
 
-  // Detalle completo y gratuito desde la API de FIFA (alineaciones de 26,
-  // táctica, técnico, árbitro y minuto a minuto en español). Si falla,
-  // se usa lo de TheSportsDB como respaldo.
-  let fifa = null;
-  try {
-    const fm = await findFifaMatch(ev);
-    if (fm) {
-      const [detail, events] = await Promise.all([
-        fifaApi(`live/football/${FIFA_COMP}/${FIFA_SEASON}/${fm.stage}/${fm.id}`),
-        fifaApi(`timelines/${FIFA_COMP}/${FIFA_SEASON}/${fm.stage}/${fm.id}`)
-          .then((d) => d.Event || [])
-          .catch(() => []),
-      ]);
-      if (detail && detail.HomeTeam) fifa = { detail, events };
-    }
-  } catch {}
-  return { ev, lineup, timeline, stats, fifa };
+// Fila de la tabla de un equipo (en cualquier grupo).
+function teamStandRow(standings, idTeam) {
+  for (const gn in standings) {
+    const r = standings[gn].find((x) => x.id === idTeam);
+    if (r) return r;
+  }
+  return null;
+}
+// Pronóstico simple (no son cuotas): a partir del rendimiento en el torneo.
+function matchOdds(idHome, idAway, standings) {
+  const H = teamStandRow(standings, idHome), A = teamStandRow(standings, idAway);
+  if (!H || !A || !H.pj || !A.pj) return null; // hace falta que ambos hayan jugado
+  const fuerza = (r) => r.pts / r.pj + (r.dg / r.pj) * 0.35;
+  const diff = Math.max(-2, Math.min(2, fuerza(H) - fuerza(A))); // acotar extremos
+  const eH = Math.exp(0.7 * diff), eA = Math.exp(-0.7 * diff);
+  const empate = 0.3 / (1 + Math.abs(diff) * 0.6);
+  const pH = (eH / (eH + eA)) * (1 - empate);
+  const pA = (eA / (eH + eA)) * (1 - empate);
+  const tot = pH + pA + empate;
+  const h = Math.round((pH / tot) * 100);
+  const a = Math.round((pA / tot) * 100);
+  return { h, a, e: 100 - h - a };
 }
 
 function lineupCol(lista, titulo) {
@@ -1328,99 +1314,93 @@ function statBar(s) {
 }
 
 function renderMatch(data) {
-  const { ev, lineup, timeline, stats, fifa } = data;
-  const fifaDetail = fifa && fifa.detail;
-  const estado = matchState(ev);
-  const d = matchDate(ev);
-  const minuto = ev.strProgress ? `${ev.strProgress}'` : (fifaDetail && fifaDetail.MatchTime) || "";
+  const { detail, events, standings } = data;
+  const home = detail.HomeTeam, away = detail.AwayTeam;
+  const th = groupTeamForFifa(loc(home.TeamName)), ta = groupTeamForFifa(loc(away.TeamName));
+  const nh = th ? th.name : loc(home.TeamName), na = ta ? ta.name : loc(away.TeamName);
+  const ch = th ? th.img : "", ca = ta ? ta.img : "";
+  const idHome = home.IdTeam;
+  const estado = fifaState(detail.MatchStatus);
+  const d = new Date(detail.Date);
+  const minuto = detail.MatchTime || "";
   const centro =
     estado === "prog"
-      ? `<span class="mm-time">${d ? fmtHoraLocal(d) : "vs"}</span>`
-      : `<span class="mm-score">${ev.intHomeScore ?? "·"} - ${ev.intAwayScore ?? "·"}</span>`;
+      ? `<span class="mm-time">${isNaN(d.getTime()) ? "vs" : fmtHoraLocal(d)}</span>`
+      : `<span class="mm-score">${home.Score ?? "·"} - ${away.Score ?? "·"}</span>`;
   const estadoTxt =
     estado === "live"
-      ? `<span class="mc__live">● En vivo${minuto ? ` ${minuto}` : ""}</span>`
+      ? `<span class="mc__live">● En vivo${minuto ? " " + minuto : ""}</span>`
       : estado === "fin"
         ? `<span class="mc__ft">Final</span>`
-        : d
+        : !isNaN(d.getTime())
           ? `<span class="mm-date">${fmtFechaLocal(d)}</span>`
           : "";
 
-  // Metadatos: sede, ronda, asistencia y árbitro (FIFA).
-  const arbitro = fifaDetail && (fifaDetail.Officials || []).find((o) => o.OfficialType === 1);
+  const arbitro = (detail.Officials || []).find((o) => o.OfficialType === 1);
+  const venue = loc(detail.Stadium && detail.Stadium.Name);
   const meta = [
-    ev.strVenue ? `📍 ${ev.strVenue}` : "",
-    ev.strRound ? `Jornada/ronda ${ev.strRound}` : "",
-    ev.intSpectators ? `👥 ${Number(ev.intSpectators).toLocaleString("es")} espectadores` : "",
-    arbitro ? `🟡 Árbitro: ${loc(arbitro.Name)}` : "",
+    venue ? `📍 ${venue}` : "",
+    loc(detail.GroupName) || loc(detail.StageName),
+    detail.Attendance ? `👥 ${Number(detail.Attendance).toLocaleString("es")}` : "",
+    arbitro ? `🟡 ${loc(arbitro.Name)}` : "",
   ].filter(Boolean).join(" · ");
 
-  // Momentos: FIFA (completos y en español) o TheSportsDB como respaldo.
-  const idHome = fifaDetail && fifaDetail.HomeTeam ? fifaDetail.HomeTeam.IdTeam : null;
-  const fifaMomentos = ((fifa && fifa.events) || []).filter((t) => t.Type in FIFA_EV_ICON);
-  const tsdbMomentos = timeline.filter((t) =>
-    ["goal", "card", "subst", "var"].includes((t.strTimeline || "").toLowerCase())
-  );
-  const momentosHTML = fifaMomentos.length
-    ? `<div class="tl-list">${fifaMomentos.map((t) => fifaMomentoRow(t, idHome)).join("")}</div>`
-    : tsdbMomentos.length
-      ? `<div class="tl-list">${tsdbMomentos
-          .map(
-            (t) => `<div class="tl-row ${t.strHome === "Yes" ? "is-home" : "is-away"}">
-              <span class="tl-min">${t.intTime != null ? t.intTime + "'" : ""}</span>
-              <span class="tl-ico">${timelineIcon(t)}</span>
-              <span class="tl-txt"><b>${t.strPlayer || ""}</b>${t.strAssist ? ` (asist. ${t.strAssist})` : ""} · ${teamName(t.strTeam)}</span>
-            </div>`
-          )
-          .join("")}</div>`
-      : "";
+  const momentos = (events || []).filter((t) => t.Type in FIFA_EV_ICON);
+  const momentosHTML = momentos.length
+    ? `<h3 class="tm-sub">Momentos del partido</h3><div class="tl-list">${momentos.map((t) => fifaMomentoRow(t, idHome)).join("")}</div>`
+    : "";
 
-  // Alineaciones: FIFA (26 jugadores, táctica, DT) o TheSportsDB como respaldo.
-  const fifaTieneAlineacion =
-    fifaDetail && ((fifaDetail.HomeTeam.Players || []).length || (fifaDetail.AwayTeam.Players || []).length);
-  const alineacionesHTML = fifaTieneAlineacion
-    ? `<div class="lu-grid">${fifaLineupCol(fifaDetail.HomeTeam)}${fifaLineupCol(fifaDetail.AwayTeam)}</div>`
-    : lineup.length
-      ? `<div class="lu-grid">
-           ${lineupCol(lineup.filter((p) => p.strHome === "Yes"), teamName(ev.strHomeTeam))}
-           ${lineupCol(lineup.filter((p) => p.strHome !== "Yes"), teamName(ev.strAwayTeam))}
-         </div>`
-      : `<p class="placeholder">Las alineaciones aún no se publican. Suelen aparecer cerca de la hora del partido.</p>`;
+  const tieneAlin = (home.Players || []).length || (away.Players || []).length;
+  const alinHTML = tieneAlin
+    ? `<h3 class="tm-sub">Alineaciones</h3>${fifaPitch(home, away)}<div class="lu-grid">${fifaLineupCol(home)}${fifaLineupCol(away)}</div>`
+    : `<h3 class="tm-sub">Alineaciones</h3><p class="placeholder">Las alineaciones aparecen cerca de la hora del partido.</p>`;
+
+  const statsArr = fifaStats(events, idHome);
+  const statsHTML = statsArr.length
+    ? `<h3 class="tm-sub">Estadísticas</h3><div class="stats-list">${statsArr.map(statBar).join("")}</div>`
+    : "";
+
+  // Pronóstico solo para partidos por jugar (en vivo/terminado ya se ve el marcador).
+  const odds = estado === "prog" ? matchOdds(idHome, away.IdTeam, standings) : null;
+  const oddsHTML = odds
+    ? `<h3 class="tm-sub">Pronóstico</h3>
+       <div class="odds">
+         <div class="odds-bar"><span class="odds-h" style="width:${odds.h}%"></span><span class="odds-e" style="width:${odds.e}%"></span><span class="odds-a" style="width:${odds.a}%"></span></div>
+         <div class="odds-legend"><span><b>${odds.h}%</b> ${nh}</span><span><b>${odds.e}%</b> Empate</span><span><b>${odds.a}%</b> ${na}</span></div>
+         <p class="odds-note">Estimación según el rendimiento en el torneo · no son cuotas reales.</p>
+       </div>`
+    : "";
+
+  // Dónde ver (Colombia).
+  const hayCol = [nh, na].includes("Colombia");
+  const verHTML = `<h3 class="tm-sub">Dónde ver (Colombia)</h3>
+    <div class="watch">
+      <span class="watch-chip">DSports / DGO</span>
+      <span class="watch-chip">Paramount+</span>
+      ${hayCol ? `<span class="watch-chip watch-chip--free">📺 Caracol</span><span class="watch-chip watch-chip--free">📺 RCN</span>` : `<span class="watch-chip">Disney+</span>`}
+    </div>
+    <p class="watch-note">DSports/DGO y Paramount+ transmiten los 104 partidos.${hayCol ? " Los de Colombia van también en señal abierta por Caracol y RCN." : " Caracol/RCN (señal abierta) y Disney+ pasan partidos selectos."}</p>`;
 
   $matchContent.innerHTML = `
     <div class="mm-head">
-      <div class="mm-team">
-        <img src="${ev.strHomeTeamBadge || ""}" alt="" />
-        <span>${teamName(ev.strHomeTeam)}</span>
-      </div>
+      <div class="mm-team"><img src="${ch}" alt="" /><span>${nh}</span></div>
       <div class="mm-center">${centro}${estadoTxt}</div>
-      <div class="mm-team">
-        <img src="${ev.strAwayTeamBadge || ""}" alt="" />
-        <span>${teamName(ev.strAwayTeam)}</span>
-      </div>
+      <div class="mm-team"><img src="${ca}" alt="" /><span>${na}</span></div>
     </div>
     <div class="modal-pad">
-      <p class="mm-meta">${meta}</p>
-
-      ${momentosHTML ? `<h3 class="tm-sub">Momentos del partido</h3>${momentosHTML}` : ""}
-
-      <h3 class="tm-sub">Alineaciones</h3>
-      ${fifaTieneAlineacion ? fifaPitch(fifaDetail.HomeTeam, fifaDetail.AwayTeam) : ""}
-      ${alineacionesHTML}
-
-      ${(() => {
-        const statsArr = stats.length ? stats : fifaStats(fifa && fifa.events, idHome);
-        if (statsArr.length)
-          return `<h3 class="tm-sub">Estadísticas</h3><div class="stats-list">${statsArr.map(statBar).join("")}</div>`;
-        return estado !== "prog" ? `<p class="placeholder">Aún no hay estadísticas disponibles.</p>` : "";
-      })()}
+      ${meta ? `<p class="mm-meta">${meta}</p>` : ""}
+      ${momentosHTML}
+      ${alinHTML}
+      ${statsHTML}
+      ${oddsHTML}
+      ${verHTML}
     </div>`;
 }
 
 const matchCache = {};
 
 let matchReqId = 0;
-async function openMatch(id) {
+async function openMatch(stage, id) {
   const myReq = ++matchReqId;
   openModal($matchModal);
   $matchContent.innerHTML = spinnerHTML("Cargando partido...");
@@ -1428,8 +1408,8 @@ async function openMatch(id) {
     // Los partidos en vivo no se cachean para ver siempre lo último.
     let data = matchCache[id];
     if (!data) {
-      data = await fetchMatch(id);
-      if (matchState(data.ev) === "fin") matchCache[id] = data;
+      data = await fetchMatch(stage, id);
+      if (fifaState(data.detail.MatchStatus) === "fin") matchCache[id] = data;
     }
     if (myReq !== matchReqId) return; // se abrió otro partido después
     renderMatch(data);

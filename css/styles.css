@@ -316,6 +316,7 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
 /* ===== Calendario ===== */
 .cal-date { font-family: var(--font-head); text-transform: uppercase; font-size: 0.95rem; letter-spacing: 1px; color: var(--ink); margin: 28px 0 14px; padding-bottom: 6px; border-bottom: 2px solid var(--ink); display: inline-block; }
 .cal-date:first-child { margin-top: 0; }
+.cal-date--live { color: var(--red); border-color: var(--red); }
 .match-card {
   display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px;
   border-radius: 14px; padding: 14px 18px; margin-bottom: 10px; font-variant-numeric: tabular-nums;
@@ -700,6 +701,27 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
 .stat-row__bar span { display: block; height: 100%; transition: width 0.4s var(--ease-out); }
 .stat-row__bar span:first-child { background: var(--blue); }
 .stat-row__bar span:last-child { background: var(--red); }
+
+/* ===== Pronóstico (estimación) ===== */
+.odds-bar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--line); }
+.odds-bar span { display: block; height: 100%; }
+.odds-h { background: var(--blue); }
+.odds-e { background: var(--ink-2); }
+.odds-a { background: var(--red); }
+.odds-legend { display: flex; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 0.82rem; flex-wrap: wrap; }
+.odds-legend b { font-family: var(--font-head); }
+.odds-legend span:nth-child(1) b { color: var(--blue); }
+.odds-legend span:nth-child(3) b { color: var(--red); }
+.odds-note { font-size: 0.72rem; color: var(--ink-2); margin-top: 8px; font-style: italic; }
+
+/* ===== Dónde ver ===== */
+.watch { display: flex; flex-wrap: wrap; gap: 8px; }
+.watch-chip {
+  font-size: 0.82rem; font-weight: 700; color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px;
+}
+.watch-chip--free { background: rgba(12, 155, 83, 0.12); border-color: var(--green); color: #0a7a41; }
+.watch-note { font-size: 0.78rem; color: var(--ink-2); margin-top: 10px; line-height: 1.5; }
 
 /* ===== Animaciones ===== */
 @keyframes livePulse { 50% { opacity: 0.45; } }

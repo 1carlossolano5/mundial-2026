@@ -723,6 +723,17 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
 .watch-chip--free { background: rgba(12, 155, 83, 0.12); border-color: var(--green); color: #0a7a41; }
 .watch-note { font-size: 0.78rem; color: var(--ink-2); margin-top: 10px; line-height: 1.5; }
 
+/* ===== Resumen en YouTube ===== */
+.yt-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #ff0033; color: #fff; text-decoration: none;
+  font-family: var(--font-head); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.9rem;
+  padding: 11px 20px; border-radius: 999px;
+  transition: transform 0.14s var(--ease-out), box-shadow 0.2s var(--ease-out);
+}
+.yt-btn:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) { .yt-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); } }
+
 /* ===== Animaciones ===== */
 @keyframes livePulse { 50% { opacity: 0.45; } }
 @keyframes barFlow { to { background-position: 200% center; } }

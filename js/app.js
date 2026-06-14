@@ -1466,6 +1466,17 @@ function renderMatch(data) {
       ? `Gratis en señal abierta por <b>Caracol</b> y <b>RCN</b>. También por ${pagos}.`
       : `Disponible por <b>${pagos}</b> · este partido no va por señal abierta.`}</p>`;
 
+  // Resumen / video en YouTube (búsqueda directa; los resúmenes salen tras el partido).
+  const definido = nh !== "Por definir" && na !== "Por definir";
+  const ytTerm = estado === "prog" ? "previa" : "resumen goles";
+  const ytUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(`${nh} vs ${na} ${ytTerm} Mundial 2026`)}`;
+  const ytLabel = estado === "fin" ? "Ver resumen y goles" : estado === "live" ? "Ver clips en vivo" : "Ver previa";
+  const ytHTML = definido
+    ? `<h3 class="tm-sub">Resumen en video</h3>
+       <a class="yt-btn" href="${ytUrl}" target="_blank" rel="noopener">▶ ${ytLabel} en YouTube</a>
+       <p class="watch-note">Abre YouTube con ${estado === "fin" ? "el resumen y los goles" : estado === "live" ? "los clips" : "la previa"} del partido.</p>`
+    : "";
+
   $matchContent.innerHTML = `
     <div class="mm-head">
       <div class="mm-team"><img src="${ch}" alt="" /><span>${nh}</span></div>
@@ -1474,11 +1485,13 @@ function renderMatch(data) {
     </div>
     <div class="modal-pad">
       ${meta ? `<p class="mm-meta">${meta}</p>` : ""}
+      ${estado !== "prog" ? ytHTML : ""}
       ${momentosHTML}
       ${alinHTML}
       ${statsHTML}
       ${oddsHTML}
       ${verHTML}
+      ${estado === "prog" ? ytHTML : ""}
     </div>`;
 }
 

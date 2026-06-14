@@ -528,7 +528,7 @@ async function loadGroups() {
                   const cls = i < 2 ? "q1" : i === 2 ? "q3" : "q4";
                   return `<tr class="${cls}" data-team="${nombre}" tabindex="0" role="button" aria-label="Ver ${nombre}">
                     <td>${i + 1}</td>
-                    <td class="stand__team"><img src="${crest}" alt="" loading="lazy"><span>${tm.flag ? tm.flag + " " : ""}${nombre}</span></td>
+                    <td class="stand__team"><img src="${crest}" alt="" loading="lazy"><span>${nombre}</span></td>
                     <td>${r.pj}</td><td>${r.g}</td><td>${r.e}</td><td>${r.p}</td>
                     <td>${r.gf}</td><td>${r.gc}</td><td>${r.dg > 0 ? "+" + r.dg : r.dg}</td><td><b>${r.pts}</b></td>
                   </tr>`;
@@ -570,7 +570,7 @@ function loadEquipos() {
     .map(
       (t) => `<button class="team-card" data-team="${t.name}" aria-label="Ver ${t.name}">
         <img class="team-card__crest" src="${t.img}" alt="" loading="lazy" />
-        <span class="team-card__name">${t.flag} ${t.name}</span>
+        <span class="team-card__name">${t.name}</span>
       </button>`
     )
     .join("");

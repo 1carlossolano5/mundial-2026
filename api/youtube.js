@@ -6,6 +6,10 @@
    permite leerla desde el navegador (CORS). El frontend luego incrusta
    https://www.youtube.com/embed/<videoId>.
 
+   Devuelve VARIOS candidatos; el frontend prueba cada uno con el reproductor
+   de YouTube y se queda con el primero que sí reproduce en el país del visitante
+   (algunos resúmenes están bloqueados por región al incrustarse).
+
    Uso:  /api/youtube?q=México vs Sudáfrica resumen Mundial 2026
    ===================================================================== */
 
@@ -13,12 +17,16 @@ export default async function handler(req, res) {
   const q = (req.query.q || "").toString().slice(0, 120);
   if (!q) return res.status(400).json({ error: "Falta el parámetro q." });
 
+  // Región del visitante (Vercel la inyecta); por defecto Colombia.
+  const country = (req.headers["x-vercel-ip-country"] || "CO").toString().slice(0, 2);
+
   // sp=EgIQAQ%3D%3D = filtro "tipo: video"; hl/gl + cookie CONSENT evitan el
   // muro de consentimiento que YouTube muestra a algunos servidores.
   const url =
     "https://www.youtube.com/results?search_query=" +
     encodeURIComponent(q) +
-    "&sp=EgIQAQ%253D%253D&hl=es&gl=CO";
+    "&sp=EgIQAQ%253D%253D&hl=es&gl=" +
+    encodeURIComponent(country);
 
   try {
     const r = await fetch(url, {
@@ -30,10 +38,15 @@ export default async function handler(req, res) {
       },
     });
     const html = await r.text();
-    const m = html.match(/"videoId":"([\w-]{11})"/);
+    const ids = [];
+    const re = /"videoId":"([\w-]{11})"/g;
+    let m;
+    while ((m = re.exec(html)) && ids.length < 8) {
+      if (!ids.includes(m[1])) ids.push(m[1]);
+    }
     // Los resúmenes no cambian una vez publicados: cache larga.
     res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
-    return res.status(200).json({ videoId: m ? m[1] : null });
+    return res.status(200).json({ ids, videoId: ids[0] || null });
   } catch (err) {
     return res.status(502).json({ error: "No se pudo buscar el video." });
   }

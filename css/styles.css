@@ -223,6 +223,37 @@ h1, h2, h3 { font-family: var(--font-head); letter-spacing: -0.02em; }
 .group-row__crest { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; }
 .group-row__name { font-weight: 600; }
 
+/* ===== Grupos: tablas de posiciones ===== */
+#gruposGrid.groups-grid { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+.stand-wrap { padding: 6px 12px 12px; overflow-x: auto; }
+.stand.stand--full { background: transparent; border: none; box-shadow: none; font-size: 0.8rem; }
+.stand--full th { padding: 8px 3px; }
+.stand--full td { padding: 8px 3px; }
+.stand--full th.stand__th-team { text-align: left; padding-left: 4px; }
+.stand--full tr[data-team] { cursor: pointer; transition: background 0.14s var(--ease-out); }
+.stand--full tr[data-team]:hover { background: var(--bg); }
+.stand--full tr[data-team]:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.stand--full .stand__team span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stand--full tr.q1 td { background: rgba(12, 155, 83, 0.07); }
+.stand--full tr.q3 td { background: rgba(245, 158, 11, 0.08); }
+
+/* ===== Equipos: cuadrícula de las 48 selecciones ===== */
+.teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 12px; }
+.team-card {
+  display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+  font-family: inherit; color: var(--ink); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+  padding: 12px 14px; box-shadow: var(--shadow);
+  transition: transform 0.16s var(--ease-out), box-shadow 0.16s var(--ease-out), border-color 0.16s var(--ease-out);
+  animation: cardIn 0.4s both;
+}
+.team-card:active { transform: scale(0.98); }
+@media (hover: hover) and (pointer: fine) {
+  .team-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
+}
+.team-card__crest { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+.team-card__name { font-weight: 700; font-size: 0.92rem; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; }
+
 /* ===== Estados ===== */
 .status { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 56px 20px; color: var(--ink-2); }
 .spinner { width: 42px; height: 42px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -721,6 +752,10 @@ button, a, .nav__btn, .btn, .sim-team, .bracket-team, .third-card, .stadium-card
 }
 @media (max-width: 560px) {
   .hero { padding: 30px 22px; min-height: auto; }
+  /* Tablas de grupo compactas: ocultar G/E/P/GF/GC, dejar PJ · DG · Pts */
+  .stand--full th:nth-child(n+4):nth-child(-n+8),
+  .stand--full td:nth-child(n+4):nth-child(-n+8) { display: none; }
+  #gruposGrid.groups-grid { grid-template-columns: 1fr; }
   .match-card { padding: 12px; gap: 8px; }
   .mc__team span { font-size: 0.8rem; }
   .mc__team img { width: 24px; height: 24px; }

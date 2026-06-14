@@ -20,6 +20,7 @@ function showSection(name) {
 
   // Carga perezosa de cada sección la primera vez.
   if (name === "grupos" && !gruposCargados) loadGroups();
+  if (name === "equipos" && !equiposCargado) loadEquipos();
   if (name === "estadios" && !estadiosCargados) loadStadiums();
   if (name === "calendario" && !calendarioCargado) loadCalendar();
 
@@ -117,16 +118,25 @@ function fifaCalendar() {
       count: "500",
     })
       .then((d) =>
-        (d.Results || []).map((m) => ({
-          id: m.IdMatch,
-          stage: m.IdStage,
-          ts: Date.parse(m.Date),
-          home: loc(m.Home && m.Home.TeamName),
-          away: loc(m.Away && m.Away.TeamName),
-          homeId: m.Home && m.Home.IdTeam,
-          awayId: m.Away && m.Away.IdTeam,
-          goals: (Number(m.Home && m.Home.Score) || 0) + (Number(m.Away && m.Away.Score) || 0),
-        }))
+        (d.Results || []).map((m) => {
+          const hs = m.Home && m.Home.Score;
+          const as = m.Away && m.Away.Score;
+          const homeScore = hs === "" || hs == null ? null : Number(hs);
+          const awayScore = as === "" || as == null ? null : Number(as);
+          return {
+            id: m.IdMatch,
+            stage: m.IdStage,
+            ts: Date.parse(m.Date),
+            home: loc(m.Home && m.Home.TeamName),
+            away: loc(m.Away && m.Away.TeamName),
+            homeId: m.Home && m.Home.IdTeam,
+            awayId: m.Away && m.Away.IdTeam,
+            group: loc(m.GroupName), // "Grupo A"… (vacío en eliminatorias)
+            homeScore,
+            awayScore,
+            goals: (homeScore || 0) + (awayScore || 0),
+          };
+        })
       )
       .catch((e) => {
         fifaCalPromise = null; // permitir reintentar
@@ -167,6 +177,14 @@ async function findFifaMatch(ev) {
 // IdTeam de FIFA para una selección (por nombre), buscando en el calendario.
 async function fifaTeamId(esName) {
   const cal = await fifaCalendar();
+  // 1) Match exacto vía GROUPS (incluye alias, p. ej. "EE. UU." → Estados Unidos).
+  for (const m of cal) {
+    const gh = groupTeamForFifa(m.home);
+    if (m.homeId && gh && gh.name === esName) return m.homeId;
+    const ga = groupTeamForFifa(m.away);
+    if (m.awayId && ga && ga.name === esName) return m.awayId;
+  }
+  // 2) Respaldo: por palabras compartidas.
   let bestId = null;
   let bestScore = 0;
   for (const m of cal) {
@@ -448,38 +466,119 @@ $golTabs.addEventListener("click", (e) => {
   if (golTally) renderGolTable(golMeta);
 });
 
-// ---- Grupos ----
+// ---- Grupos (tablas de posiciones en vivo, calculadas del calendario) ----
 let gruposCargados = false;
 const $gruposGrid = document.getElementById("gruposGrid");
 const $gruposStatus = document.getElementById("gruposStatus");
 
-function loadGroups() {
-  gruposCargados = true;
-  $gruposStatus.hidden = true;
-  $gruposGrid.innerHTML = GROUPS.map((g) => {
-    return `
-    <div class="group-card">
-      <div class="group-card__head">
-        <span>Grupo ${g.letter}</span>
-      </div>
-      ${g.teams
-        .map(
-          (t) => `
-        <button class="group-row" data-team="${t.name}" aria-label="Ver jugadores y datos de ${t.name}">
-          <img class="group-row__crest" src="${t.img}" alt="" loading="lazy" />
-          <span class="group-row__name">${t.name}</span>
-          <span class="group-row__go" aria-hidden="true">→</span>
-        </button>`
-        )
-        .join("")}
-    </div>`;
-  }).join("");
+// Tabla de cada grupo a partir de los resultados del calendario FIFA.
+function computeGroupStandings(cal) {
+  const grupos = {}; // "Grupo A" → { idTeam → fila }
+  for (const m of cal) {
+    if (!m.group || !/grupo/i.test(m.group)) continue; // solo fase de grupos
+    const g = grupos[m.group] || (grupos[m.group] = {});
+    // Asegura que las 4 selecciones aparezcan aunque no hayan jugado.
+    if (m.homeId && !g[m.homeId]) g[m.homeId] = { id: m.homeId, name: m.home, pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0, pts: 0 };
+    if (m.awayId && !g[m.awayId]) g[m.awayId] = { id: m.awayId, name: m.away, pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0, pts: 0 };
+    const hs = m.homeScore, as = m.awayScore;
+    if (hs == null || as == null) continue; // partido aún sin jugar
+    const H = g[m.homeId], A = g[m.awayId];
+    if (!H || !A) continue;
+    H.pj++; A.pj++;
+    H.gf += hs; H.gc += as; A.gf += as; A.gc += hs;
+    if (hs > as) { H.g++; H.pts += 3; A.p++; }
+    else if (hs < as) { A.g++; A.pts += 3; H.p++; }
+    else { H.e++; A.e++; H.pts++; A.pts++; }
+  }
+  const out = {};
+  Object.keys(grupos).sort().forEach((gn) => {
+    const filas = Object.values(grupos[gn]).map((r) => ({ ...r, dg: r.gf - r.gc }));
+    filas.sort((a, b) => b.pts - a.pts || b.dg - a.dg || b.gf - a.gf || a.name.localeCompare(b.name));
+    out[gn] = filas;
+  });
+  return out;
 }
 
-// Clic en una selección -> modal con jugadores, técnico y últimos partidos.
+async function loadGroups() {
+  gruposCargados = true;
+  $gruposStatus.hidden = false;
+  $gruposGrid.innerHTML = "";
+  try {
+    const [cal, meta] = await Promise.all([fifaCalendar(), fifaTeamMeta()]);
+    const standings = computeGroupStandings(cal);
+    const nombres = Object.keys(standings);
+    $gruposStatus.hidden = true;
+    if (!nombres.length) {
+      $gruposGrid.innerHTML = `<p class="placeholder">Las posiciones aparecerán cuando la API publique los grupos y resultados.</p>`;
+      return;
+    }
+    $gruposGrid.innerHTML = nombres
+      .map((gn) => {
+        const filas = standings[gn];
+        return `<div class="group-card">
+          <div class="group-card__head"><span>${gn}</span></div>
+          <div class="stand-wrap">
+            <table class="stand stand--full">
+              <tr><th></th><th class="stand__th-team">Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th><th>GF</th><th>GC</th><th>DG</th><th>Pts</th></tr>
+              ${filas
+                .map((r, i) => {
+                  const tm = meta[r.id] || {};
+                  const nombre = tm.name || r.name;
+                  const crest = tm.crest || "";
+                  const cls = i < 2 ? "q1" : i === 2 ? "q3" : "q4";
+                  return `<tr class="${cls}" data-team="${nombre}" tabindex="0" role="button" aria-label="Ver ${nombre}">
+                    <td>${i + 1}</td>
+                    <td class="stand__team"><img src="${crest}" alt="" loading="lazy"><span>${tm.flag ? tm.flag + " " : ""}${nombre}</span></td>
+                    <td>${r.pj}</td><td>${r.g}</td><td>${r.e}</td><td>${r.p}</td>
+                    <td>${r.gf}</td><td>${r.gc}</td><td>${r.dg > 0 ? "+" + r.dg : r.dg}</td><td><b>${r.pts}</b></td>
+                  </tr>`;
+                })
+                .join("")}
+            </table>
+          </div>
+        </div>`;
+      })
+      .join("");
+  } catch (err) {
+    $gruposStatus.hidden = true;
+    gruposCargados = false; // permitir reintentar
+    $gruposGrid.innerHTML = `<p class="placeholder">${err.message}</p>`;
+  }
+}
+
+// Clic (o Enter) en una fila -> modal de la selección.
 $gruposGrid.addEventListener("click", (e) => {
-  const row = e.target.closest(".group-row[data-team]");
+  const row = e.target.closest("[data-team]");
   if (row) openTeam(row.dataset.team);
+});
+$gruposGrid.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const row = e.target.closest("[data-team]");
+  if (!row) return;
+  e.preventDefault();
+  openTeam(row.dataset.team);
+});
+
+// ---- Equipos (las 48 selecciones, en cuadrícula) ----
+let equiposCargado = false;
+const $equiposGrid = document.getElementById("equiposGrid");
+
+function loadEquipos() {
+  equiposCargado = true;
+  const todos = GROUPS.flatMap((g) => g.teams).slice().sort((a, b) => a.name.localeCompare(b.name));
+  $equiposGrid.innerHTML = todos
+    .map(
+      (t) => `<button class="team-card" data-team="${t.name}" aria-label="Ver ${t.name}">
+        <img class="team-card__crest" src="${t.img}" alt="" loading="lazy" />
+        <span class="team-card__name">${t.flag} ${t.name}</span>
+      </button>`
+    )
+    .join("");
+}
+
+$equiposGrid.addEventListener("click", (e) => {
+  const card = e.target.closest(".team-card[data-team]");
+  if (card) openTeam(card.dataset.team);
 });
 
 // =====================================================================

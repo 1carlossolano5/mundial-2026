@@ -21,10 +21,11 @@
       <nav class="nav" id="nav">
         <button class="nav__btn is-active" data-section="inicio"><b>01</b> Inicio</button>
         <button class="nav__btn" data-section="grupos"><b>02</b> Grupos</button>
-        <button class="nav__btn" data-section="estadios"><b>03</b> Estadios</button>
-        <button class="nav__btn" data-section="calendario"><b>04</b> Calendario</button>
-        <button class="nav__btn" data-section="goleadores"><b>05</b> Líderes</button>
-        <button class="nav__btn" data-section="simulador"><b>06</b> Simulador</button>
+        <button class="nav__btn" data-section="equipos"><b>03</b> Equipos</button>
+        <button class="nav__btn" data-section="estadios"><b>04</b> Estadios</button>
+        <button class="nav__btn" data-section="calendario"><b>05</b> Calendario</button>
+        <button class="nav__btn" data-section="goleadores"><b>06</b> Líderes</button>
+        <button class="nav__btn" data-section="simulador"><b>07</b> Simulador</button>
       </nav>
       <div class="sidebar__foot">
         🇺🇸 🇲🇽 🇨🇦<br />
@@ -62,12 +63,19 @@
         <div class="ticker" id="ticker" aria-hidden="true"><div class="ticker__track" id="tickerTrack"></div></div>
       </section>
 
-      <!-- GRUPOS -->
+      <!-- GRUPOS (tablas de posiciones en vivo) -->
       <section class="view" id="grupos">
         <h2 class="view__title">Grupos</h2>
-        <p class="view__intro">Los 12 grupos del Mundial 2026. Clasifican el <strong>1° y 2°</strong> de cada grupo, más los <strong>8 mejores terceros</strong>. <strong>Toca una selección</strong> para ver sus jugadores, técnico y últimos partidos.</p>
-        <div class="status" id="gruposStatus" hidden><div class="spinner"></div><p>Cargando...</p></div>
+        <p class="view__intro">Cómo van los 12 grupos: posiciones, partidos jugados, goles y puntos, actualizados con cada resultado. Clasifican el <strong>1° y 2°</strong> (verde) de cada grupo, más los <strong>8 mejores terceros</strong> (naranja). <strong>Toca una selección</strong> para ver su plantel.</p>
+        <div class="status" id="gruposStatus" hidden><div class="spinner"></div><p>Cargando posiciones...</p></div>
         <div class="groups-grid" id="gruposGrid"></div>
+      </section>
+
+      <!-- EQUIPOS (todas las selecciones) -->
+      <section class="view" id="equipos">
+        <h2 class="view__title">Equipos</h2>
+        <p class="view__intro">Las <strong>48 selecciones</strong> del Mundial 2026. <strong>Toca cualquiera</strong> para ver su plantel completo con fotos, el técnico y sus últimos partidos.</p>
+        <div class="teams-grid" id="equiposGrid"></div>
       </section>
 
       <!-- ESTADIOS -->

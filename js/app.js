@@ -710,7 +710,7 @@ function fifaState(status) {
 function fifaMatchCard(m) {
   const estado = fifaState(m.status);
   const th = groupTeamForFifa(m.home), ta = groupTeamForFifa(m.away);
-  const nh = th ? th.name : m.home, na = ta ? ta.name : m.away;
+  const nh = th ? th.name : m.home || "Por definir", na = ta ? ta.name : m.away || "Por definir";
   const ch = th ? th.img : "", ca = ta ? ta.img : "";
   const d = new Date(m.ts);
   const hora = isNaN(d.getTime()) ? "vs" : fmtHoraLocal(d);
@@ -1140,13 +1140,32 @@ function timelineIcon(t) {
 // Detalle del partido directo desde FIFA por stage+id (sin cruces difusos):
 // alineaciones de 26, táctica, técnico, árbitro y minuto a minuto en español.
 async function fetchMatch(stage, id) {
-  const [detail, events, cal] = await Promise.all([
-    fifaApi(`live/football/${FIFA_COMP}/${FIFA_SEASON}/${stage}/${id}`),
+  const [detailRaw, events, cal] = await Promise.all([
+    fifaApi(`live/football/${FIFA_COMP}/${FIFA_SEASON}/${stage}/${id}`).catch(() => null),
     fifaApi(`timelines/${FIFA_COMP}/${FIFA_SEASON}/${stage}/${id}`).then((d) => d.Event || []).catch(() => []),
     fifaCalendar().catch(() => []),
   ]);
-  if (!detail || !detail.HomeTeam) throw new Error("No se pudo cargar el detalle del partido.");
-  return { detail, events, standings: computeGroupStandings(cal || []) };
+  const calMatch = (cal || []).find((c) => String(c.id) === String(id)) || null;
+  let detail = detailRaw;
+  // Eliminatorias aún sin equipos: FIFA devuelve null. Armamos un detalle
+  // mínimo desde el calendario para mostrar sede, ronda y dónde ver.
+  if (!detail || !detail.HomeTeam) {
+    if (!calMatch) throw new Error("No se pudo cargar el detalle del partido.");
+    const tn = (s) => [{ Description: s || "" }];
+    const lado = (nombre, idT) => ({ TeamName: tn(nombre), IdTeam: idT, Players: [], Score: null, Tactics: "", Coaches: [] });
+    detail = {
+      MatchStatus: calMatch.status,
+      MatchTime: "",
+      Date: calMatch.ts ? new Date(calMatch.ts).toISOString() : null,
+      StageName: tn(calMatch.stageName),
+      GroupName: tn(calMatch.group),
+      Stadium: { Name: tn(calMatch.venue) },
+      Officials: [],
+      HomeTeam: lado(calMatch.home, calMatch.homeId),
+      AwayTeam: lado(calMatch.away, calMatch.awayId),
+    };
+  }
+  return { detail, events, standings: computeGroupStandings(cal || []), calMatch };
 }
 
 // Fila de la tabla de un equipo (en cualquier grupo).
@@ -1313,21 +1332,41 @@ function statBar(s) {
     </div>`;
 }
 
-// Partidos confirmados por señal abierta (Caracol/RCN), además de los de
-// Colombia. Clave por par de nombres (sin orden, sin acentos). Agregar aquí
-// los que confirmen los canales día a día.
+// Partidos por señal abierta (Caracol/RCN). Lista oficial de fase de grupos +
+// los de Colombia (detectados aparte) + semifinales y final (por StageName).
+// Clave por par de nombres (sin orden, sin acentos). Agregar aquí los demás
+// que confirmen los canales (p. ej. los de eliminatorias cuando se sepan).
 const tvPairKey = (a, b) => [normTxt(a), normTxt(b)].sort().join("|");
 const FREE_TO_AIR_PAIRS = new Set([
-  tvPairKey("México", "Sudáfrica"), // partido inaugural
-  tvPairKey("Brasil", "Marruecos"), // confirmado
+  tvPairKey("México", "Sudáfrica"),
+  tvPairKey("Estados Unidos", "Paraguay"),
+  tvPairKey("Brasil", "Marruecos"),
+  tvPairKey("Países Bajos", "Japón"),
+  tvPairKey("España", "Cabo Verde"),
+  tvPairKey("Argentina", "Argelia"),
+  tvPairKey("Uzbekistán", "Colombia"),
+  tvPairKey("Suiza", "Bosnia y Herzegovina"),
+  tvPairKey("Escocia", "Marruecos"),
+  tvPairKey("Alemania", "Costa de Marfil"),
+  tvPairKey("Bélgica", "Irán"),
+  tvPairKey("Argentina", "Austria"),
+  tvPairKey("Colombia", "R.D. Congo"),
+  tvPairKey("Escocia", "Brasil"),
+  tvPairKey("Ecuador", "Alemania"),
+  tvPairKey("Uruguay", "España"),
+  tvPairKey("Colombia", "Portugal"),
 ]);
+// Rondas finales que Caracol/RCN pasan completas por señal abierta.
+const FREE_TO_AIR_STAGES = /^(Semifinal|Final)$/i;
 
 function renderMatch(data) {
-  const { detail, events, standings } = data;
+  const { detail, events, standings, calMatch } = data;
   const home = detail.HomeTeam, away = detail.AwayTeam;
   const th = groupTeamForFifa(loc(home.TeamName)), ta = groupTeamForFifa(loc(away.TeamName));
-  const nh = th ? th.name : loc(home.TeamName), na = ta ? ta.name : loc(away.TeamName);
+  const nh = th ? th.name : loc(home.TeamName) || "Por definir";
+  const na = ta ? ta.name : loc(away.TeamName) || "Por definir";
   const ch = th ? th.img : "", ca = ta ? ta.img : "";
+  const stageName = (calMatch && calMatch.stageName) || loc(detail.StageName);
   const idHome = home.IdTeam;
   const estado = fifaState(detail.MatchStatus);
   const d = new Date(detail.Date);
@@ -1349,7 +1388,7 @@ function renderMatch(data) {
   const venue = loc(detail.Stadium && detail.Stadium.Name);
   const meta = [
     venue ? `📍 ${venue}` : "",
-    loc(detail.GroupName) || loc(detail.StageName),
+    loc(detail.GroupName) || stageName,
     detail.Attendance ? `👥 ${Number(detail.Attendance).toLocaleString("es")}` : "",
     arbitro ? `🟡 ${loc(arbitro.Name)}` : "",
   ].filter(Boolean).join(" · ");
@@ -1383,7 +1422,9 @@ function renderMatch(data) {
   // Dónde ver (Colombia). DSports/DGO + Paramount+ tienen los 104; Caracol/RCN
   // (señal abierta, gratis) solo en partidos confirmados (Colombia + lista curada).
   const senalAbierta =
-    [nh, na].includes("Colombia") || FREE_TO_AIR_PAIRS.has(tvPairKey(nh, na));
+    [nh, na].includes("Colombia") ||
+    FREE_TO_AIR_STAGES.test(stageName) ||
+    FREE_TO_AIR_PAIRS.has(tvPairKey(nh, na));
   const verHTML = `<h3 class="tm-sub">Dónde ver (Colombia)</h3>
     <div class="watch">
       <span class="watch-chip">DSports / DGO</span>

@@ -38,15 +38,21 @@ export default async function handler(req, res) {
       },
     });
     const html = await r.text();
-    // Cada videoRenderer trae su videoId y su título juntos; los emparejamos
-    // por bloque para poder filtrar por el nº de partido ("M1", "M2"… de ESPN).
+    // Cada videoRenderer trae su videoId, título y canal juntos; los emparejamos
+    // por bloque para poder priorizar el canal ESPN Fans y los videos "RESUMEN".
     const candidates = [];
     for (const chunk of html.split('"videoRenderer":').slice(1)) {
       const id = chunk.match(/"videoId":"([\w-]{11})"/);
       if (!id || candidates.some((c) => c.id === id[1])) continue;
       const title = chunk.match(/"title":\{"runs":\[\{"text":"([^"]+)"/);
-      candidates.push({ id: id[1], title: title ? title[1] : "" });
-      if (candidates.length >= 8) break;
+      const owner = chunk.match(/"ownerText":\{"runs":\[\{"text":"([^"]*)".*?"browseId":"(UC[\w-]{22})"/);
+      candidates.push({
+        id: id[1],
+        title: title ? title[1] : "",
+        channel: owner ? owner[1] : "",
+        channelId: owner ? owner[2] : "",
+      });
+      if (candidates.length >= 10) break;
     }
     // Los resúmenes no cambian una vez publicados: cache larga.
     res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");

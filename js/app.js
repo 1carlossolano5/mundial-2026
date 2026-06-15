@@ -132,7 +132,6 @@ function fifaCalendar() {
             homeId: m.Home && m.Home.IdTeam,
             awayId: m.Away && m.Away.IdTeam,
             group: loc(m.GroupName), // "Grupo A"… (vacío en eliminatorias)
-            num: m.MatchNumber, // nº de partido (= "M1", "M2"… de los títulos de ESPN)
             stageName: loc(m.StageName), // "Primera fase", "Octavos"…
             status: m.MatchStatus, // 0 fin · 3/12 en vivo · 1 programado
             minute: m.MatchTime, // "67'" en vivo
@@ -1490,27 +1489,33 @@ function renderMatch(data) {
       ${verHTML}
     </div>`;
 
-  if (mostrarVideo) hydrateMatchVideo(document.getElementById("ytVideo"), nh, na, calMatch && calMatch.num);
+  if (mostrarVideo) hydrateMatchVideo(document.getElementById("ytVideo"), nh, na);
 }
 
-// Pide a la función los videos candidatos del resumen (con título) y los ordena
-// poniendo primero el que coincide con el nº de partido de ESPN ("M1", "M2"…),
-// que es el resumen exacto de ese partido. Devuelve la lista de ids.
-async function youtubeVideoIds(query, num) {
+// Canal oficial de ESPN Fans (resúmenes para Latam, reproducibles en Colombia).
+const ESPN_FANS_ID = "UCFmMw7yTuLTCuMhpZD5dVsg";
+// Sus resúmenes de partido terminan con un tag "M1", "M2"… (los distingue de
+// clips o análisis). No usamos el número exacto: no calza con el de FIFA.
+const RESUMEN_TAG = /\bM\d{1,3}\b/;
+
+// Pide los candidatos a la función y los ordena priorizando: (1) canal ESPN Fans
+// + RESUMEN, (2) ESPN Fans, (3) cualquier RESUMEN, (4) el resto. Devuelve ids.
+async function youtubeVideoIds(query) {
   const url = new URL("/api/youtube", window.location.origin);
   url.searchParams.set("q", query);
   const r = await fetch(url);
   if (!r.ok) throw new Error("sin función");
   const d = await r.json();
-  let cands = d.candidates && d.candidates.length
+  const cands = d.candidates && d.candidates.length
     ? d.candidates
-    : (d.ids || (d.videoId ? [d.videoId] : [])).map((id) => ({ id, title: "" }));
+    : (d.ids || (d.videoId ? [d.videoId] : [])).map((id) => ({ id, title: "", channelId: "" }));
   if (!cands.length) throw new Error("sin video");
-  if (num) {
-    const re = new RegExp("\\bM" + num + "\\b");
-    cands = cands.slice().sort((a, b) => (re.test(b.title) ? 1 : 0) - (re.test(a.title) ? 1 : 0));
-  }
-  return cands.map((c) => c.id);
+  const score = (c) =>
+    (c.channelId === ESPN_FANS_ID ? 2 : 0) + (RESUMEN_TAG.test(c.title || "") ? 1 : 0);
+  return cands
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => score(b.c) - score(a.c) || a.i - b.i) // estable: respeta relevancia
+    .map((x) => x.c.id);
 }
 
 // Carga (una sola vez) la API del reproductor de YouTube.
@@ -1557,14 +1562,13 @@ async function playFirstPlayable(box, ids, query) {
 }
 
 // Rellena el contenedor: miniatura (clic para reproducir) o link de respaldo.
-async function hydrateMatchVideo(box, nh, na, num) {
+async function hydrateMatchVideo(box, nh, na) {
   if (!box) return;
-  // Prioriza ESPN (rights holder en Latam, reproducible en Colombia) y, dentro
-  // de eso, el video cuyo título trae el nº de partido (M1, M2…) = el resumen
-  // exacto. Si por región estuviera bloqueado, el reproductor salta al siguiente.
+  // Prioriza el canal ESPN Fans y su video de RESUMEN; si por región estuviera
+  // bloqueado, el reproductor salta al siguiente candidato.
   const query = `${nh} vs ${na} resumen ESPN Mundial 2026`;
   try {
-    const ids = await youtubeVideoIds(query, num);
+    const ids = await youtubeVideoIds(query);
     if (!document.body.contains(box)) return; // se abrió otro partido
     box.innerHTML = `
       <button class="yt-thumb" aria-label="Reproducir resumen de ${nh} vs ${na}">

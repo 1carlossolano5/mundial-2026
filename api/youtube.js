@@ -38,15 +38,23 @@ export default async function handler(req, res) {
       },
     });
     const html = await r.text();
-    const ids = [];
-    const re = /"videoId":"([\w-]{11})"/g;
-    let m;
-    while ((m = re.exec(html)) && ids.length < 8) {
-      if (!ids.includes(m[1])) ids.push(m[1]);
+    // Cada videoRenderer trae su videoId y su título juntos; los emparejamos
+    // por bloque para poder filtrar por el nº de partido ("M1", "M2"… de ESPN).
+    const candidates = [];
+    for (const chunk of html.split('"videoRenderer":').slice(1)) {
+      const id = chunk.match(/"videoId":"([\w-]{11})"/);
+      if (!id || candidates.some((c) => c.id === id[1])) continue;
+      const title = chunk.match(/"title":\{"runs":\[\{"text":"([^"]+)"/);
+      candidates.push({ id: id[1], title: title ? title[1] : "" });
+      if (candidates.length >= 8) break;
     }
     // Los resúmenes no cambian una vez publicados: cache larga.
     res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
-    return res.status(200).json({ ids, videoId: ids[0] || null });
+    return res.status(200).json({
+      candidates,
+      ids: candidates.map((c) => c.id),
+      videoId: candidates[0] ? candidates[0].id : null,
+    });
   } catch (err) {
     return res.status(502).json({ error: "No se pudo buscar el video." });
   }

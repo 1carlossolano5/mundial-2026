@@ -132,6 +132,7 @@ function fifaCalendar() {
             homeId: m.Home && m.Home.IdTeam,
             awayId: m.Away && m.Away.IdTeam,
             group: loc(m.GroupName), // "Grupo A"… (vacío en eliminatorias)
+            num: m.MatchNumber, // nº de partido (= "M1", "M2"… de los títulos de ESPN)
             stageName: loc(m.StageName), // "Primera fase", "Octavos"…
             status: m.MatchStatus, // 0 fin · 3/12 en vivo · 1 programado
             minute: m.MatchTime, // "67'" en vivo
@@ -1489,19 +1490,27 @@ function renderMatch(data) {
       ${verHTML}
     </div>`;
 
-  if (mostrarVideo) hydrateMatchVideo(document.getElementById("ytVideo"), nh, na);
+  if (mostrarVideo) hydrateMatchVideo(document.getElementById("ytVideo"), nh, na, calMatch && calMatch.num);
 }
 
-// Pide a la función varios videos candidatos del resumen (evita CORS de YouTube).
-async function youtubeVideoIds(query) {
+// Pide a la función los videos candidatos del resumen (con título) y los ordena
+// poniendo primero el que coincide con el nº de partido de ESPN ("M1", "M2"…),
+// que es el resumen exacto de ese partido. Devuelve la lista de ids.
+async function youtubeVideoIds(query, num) {
   const url = new URL("/api/youtube", window.location.origin);
   url.searchParams.set("q", query);
   const r = await fetch(url);
   if (!r.ok) throw new Error("sin función");
   const d = await r.json();
-  const ids = d.ids && d.ids.length ? d.ids : d.videoId ? [d.videoId] : [];
-  if (!ids.length) throw new Error("sin video");
-  return ids;
+  let cands = d.candidates && d.candidates.length
+    ? d.candidates
+    : (d.ids || (d.videoId ? [d.videoId] : [])).map((id) => ({ id, title: "" }));
+  if (!cands.length) throw new Error("sin video");
+  if (num) {
+    const re = new RegExp("\\bM" + num + "\\b");
+    cands = cands.slice().sort((a, b) => (re.test(b.title) ? 1 : 0) - (re.test(a.title) ? 1 : 0));
+  }
+  return cands.map((c) => c.id);
 }
 
 // Carga (una sola vez) la API del reproductor de YouTube.
@@ -1548,13 +1557,14 @@ async function playFirstPlayable(box, ids, query) {
 }
 
 // Rellena el contenedor: miniatura (clic para reproducir) o link de respaldo.
-async function hydrateMatchVideo(box, nh, na) {
+async function hydrateMatchVideo(box, nh, na, num) {
   if (!box) return;
-  // Prioriza ESPN (rights holder en Latam, reproducible en Colombia); si por
-  // región estuviera bloqueado, el reproductor salta al siguiente candidato.
+  // Prioriza ESPN (rights holder en Latam, reproducible en Colombia) y, dentro
+  // de eso, el video cuyo título trae el nº de partido (M1, M2…) = el resumen
+  // exacto. Si por región estuviera bloqueado, el reproductor salta al siguiente.
   const query = `${nh} vs ${na} resumen ESPN Mundial 2026`;
   try {
-    const ids = await youtubeVideoIds(query);
+    const ids = await youtubeVideoIds(query, num);
     if (!document.body.contains(box)) return; // se abrió otro partido
     box.innerHTML = `
       <button class="yt-thumb" aria-label="Reproducir resumen de ${nh} vs ${na}">

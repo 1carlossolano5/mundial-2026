@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Mundial 2026: selecciones, jugadores, estadios, calendario, resultados en vivo y simulador del torneo. Proyecto de Carlos Solano." />
   <title>Mundial 2026 · Guía y Simulador</title>
+
+  <!-- PWA: instalable + soporte offline -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b0d16" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mundial 2026" />
+  <link rel="apple-touch-icon" href="img/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="img/icons/icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -89,6 +99,11 @@
       <section class="view" id="calendario">
         <h2 class="view__title">Calendario y resultados</h2>
         <p class="view__intro">Partidos con sede y <strong>horario en tu hora local</strong> (según tu país). Los resultados <strong>en vivo</strong> se actualizan solos. <strong>Toca un partido</strong> para ver alineaciones, goles y estadísticas.</p>
+        <div class="notify-bar">
+          <button class="notify-bar__btn" id="notifyOpen">🔔 Avisos de partido</button>
+          <span class="notify-bar__hint">Sigue un partido para que te avisemos del arranque, goles y final.</span>
+        </div>
+        <div class="notify-panel" id="notifyPanel" hidden></div>
         <div class="status" id="calStatus" hidden><div class="spinner"></div><p>Cargando partidos...</p></div>
         <div class="calendar" id="calList"></div>
       </section>
@@ -153,8 +168,46 @@
     </div>
   </div>
 
+  <!-- PWA: botón flotante para instalar la app (se muestra solo si es instalable) -->
+  <button class="install-fab" id="installBtn" hidden aria-label="Instalar la app Mundial 2026">
+    <span class="install-fab__icon" aria-hidden="true">📲</span>
+    <span class="install-fab__text">Instalar app</span>
+    <span class="install-fab__close" id="installDismiss" role="button" aria-label="Ahora no" title="Ahora no">✕</span>
+  </button>
+
+  <!-- Instrucciones para iOS (allí no existe instalación automática) -->
+  <div class="install-hint" id="installHint" hidden role="dialog" aria-label="Cómo instalar en iPhone">
+    <button class="install-hint__close" id="installHintClose" aria-label="Cerrar">✕</button>
+    <h3>Instalar en tu iPhone</h3>
+    <ol>
+      <li>Toca <strong>Compartir</strong> <span aria-hidden="true">⬆️</span> en la barra de Safari.</li>
+      <li>Elige <strong>“Agregar a inicio”</strong> <span aria-hidden="true">➕</span>.</li>
+      <li>Confirma y listo: se abre como app. 🎉</li>
+    </ol>
+  </div>
+
+  <!-- Datos estaticos primero (los demas dependen de GROUPS / TEAM_ES / STADIUMS) -->
   <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
+  <!-- Logica de la app, antes en app.js, ahora por modulo (scripts clasicos, scope global) -->
+  <script src="js/nav.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/format.js"></script>
+  <script src="js/leaders.js"></script>
+  <script src="js/groups.js"></script>
+  <script src="js/teams.js"></script>
+  <script src="js/stadiums.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/modals.js"></script>
+  <script src="js/team-detail.js"></script>
+  <script src="js/player-detail.js"></script>
+  <script src="js/pitch.js"></script>
+  <script src="js/youtube.js"></script>
+  <script src="js/match-detail.js"></script>
+  <!-- Recordatorios / avisos de partido (usa los datos en vivo ya cargados) -->
+  <script src="js/notify.js"></script>
+  <!-- Simulador (independiente; solo usa data.js) -->
   <script src="js/simulator.js"></script>
+  <!-- PWA: registro del service worker (instalable + offline) -->
+  <script src="js/pwa.js"></script>
 </body>
 </html>

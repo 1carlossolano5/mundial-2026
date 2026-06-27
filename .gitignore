@@ -5,3 +5,6 @@
 # Dependencias / artefactos
 node_modules/
 .vercel/
+
+# Graphify — análisis local del código, no es parte del sitio
+graphify-out/
